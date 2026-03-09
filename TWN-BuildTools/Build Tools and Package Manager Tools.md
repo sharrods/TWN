@@ -7,6 +7,8 @@ up:
 related:
 source:
 tags:
+  - "#on/twn"
+  - "#on/devops"
 summary:
   - Build tool 
 status:
@@ -85,4 +87,41 @@ npm start
 
 #### You still need to build the image when using docker. 
 ![[Screenshot 2026-03-06 at 8.07.57 AM.png]]
+
+
+---
+## Package Manager Java script
+### Not build tools only package manager
+- NPM - Has repo  
+- Yarn - 
+#### Link to Ressource 
+- [NPM](https://www.npmjs.com/) 
+Need to copy artifact + package.json 
+
+### How to create a artifact file for nod js application 
+You can run a java script locally with 
+
+```json
+npm start
+```
+
+Create Artifact file for nodeJS
+```json
+npm pack
+```
+
+Creates package file. You can decide what gets packaged inside npm 
+
+---
+## Docker 
+### Docker Images
+- Require to be built 
+- No need to have multiple file types (war, jar,etc)
+- Standardized things better
+- Copy everything inside the container. 
+- Write everything in dockerfile
+
+![[Screenshot 2026-03-09 at 7.21.51 AM.png]]
+
+![[Screenshot 2026-03-09 at 7.22.46 AM.png]]
 
