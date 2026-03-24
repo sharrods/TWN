@@ -13,7 +13,8 @@ summary:
   - Build tool 
 status:
 ---
-
+- JAR = Java Archive 
+- 
 ## Backend and Fronend
 - [.] Frontend = React
 - [x] Backend = NodeJs, Python , Java
@@ -36,6 +37,12 @@ npm pack
 ```json
 npm start 
 ```
+
+### NPM Commands
+- npm start - start the application
+- npm stop - stop the application 
+- npm test - run the tests
+- npm publish - publish the artifact
 
 - Seperate frontend package.json and frontend packa.json. This helps to make it quicker. 
 
