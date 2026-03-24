@@ -54,13 +54,19 @@ ISSUES
 - Tried to connect to port 7071 but was unable. 
 - Checked netstat -tulpn | grep 7071 
     - RESOLVED  mapped wrong ip to name in my local laptop. 
-
+- ssh-key configuration issue couldn't login as local user I created
+    - RESOLVED have to pass -i and key + private (local) to Public (remote) 
+- Private key (local) authenticates against Public key (remote server authorized_keys)
+- Public vs Private key — private key stays local, public key lives on remote server
 ################################
 Create User
 ################################
 adduser sskinner
 usermod -aG sudo sskinner
 skinner@ubuntu-s-1vcpu-512mb-10gb-nyc1-01:~$
+Created .ssh/authorized_keys folder 
+Change folder permssions to .ssh=700; .ssh/authorized_keys=600
+
 
 ## Key Concepts
 - Manual cloud provisioning
