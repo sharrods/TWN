@@ -88,7 +88,14 @@ tcp6       0      0 :::8081                 :::*                    LISTEN      
 
 
 
-## Pushing Artifacts to Nexus
+### Pushing Artifacts to Nexus
+- update .m2 folder on local machine
+- create settings.xml 
+
+### Deploy jar file
+mvn package
+mvn deploy
+
 
 ### Maven - configure pom.xml distributionManagement
 <distributionManagement>
@@ -111,8 +118,6 @@ tcp6       0      0 :::8081                 :::*                    LISTEN      
     </server>
 </servers>
 
-### Deploy artifact to Nexus
-mvn deploy
 
 ### npm - configure registry
 npm config set registry http://<droplet-ip>:8081/repository/npm-hosted/
