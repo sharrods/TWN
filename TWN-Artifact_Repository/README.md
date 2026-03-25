@@ -47,7 +47,7 @@ tcp6       0      0 :::8081                 :::*                    LISTEN      
 
 
 ## Accessing Nexus
-- URL: http://143.244.171.154:8081
+- URL: http://<droplet-ip>:8081
 - Default user: admin
 - Initial password location: /opt/sonatype-work/nexus3/admin.password
 - Enable anonymous access
@@ -83,7 +83,7 @@ tcp6       0      0 :::8081                 :::*                    LISTEN      
 |------|------|---------|
 | hosted | maven-releases | Store release JAR artifacts |
 | hosted | maven-snapshots | Store snapshot JAR artifacts |
-| proxy | maven-central | Proxy for aven Central |
+| proxy | maven-central | Proxy for maven Central |
 | group | maven-group | Combines all Maven repos |
 
 
@@ -122,6 +122,35 @@ mvn deploy
 ### npm - configure registry
 npm config set registry http://<droplet-ip>:8081/repository/npm-hosted/
 npm publish
+
+
+### Nexus REST API 
+- ❯ curl -u user:pwd -X GET 'http://143.244.171.154:8081/service/rest/v1/repositories'
+[ {
+  "name" : "maven-snapshots",
+  "format" : "maven2",
+  "type" : "hosted",
+  "url" : "http://143.244.171.154:8081/repository/maven-snapshots",
+  "attributes" : { }
+} ]%
+
+- list all compontents
+curl -u user:pwd -X GET 'http://143.244.171.154:8081/service/rest/v1/components?repository=maven-snapshots'
+
+### Create Blob Store
+- name: mystore
+- type: file 
+- path: /opt/sonatype-work/nexus3/blobs/mystore
+- Verify: root@ubuntu-s-4vcpu-8gb-nyc1-01:/opt/sonatype-work/nexus3/blobs/default/content# ls -l vol-39/chap-16/
+total 0
+
+### Create Cleanup Policy 
+- name:  maven
+- format: maven2
+- attach cleanup policy to repository 
+- added maven to maven-snapshots 
+- Task : compact-store - run to remove from the content directory. 
+
 
 ## Issues and Resolutions
 - [Document any issues you hit and how you fixed them]
