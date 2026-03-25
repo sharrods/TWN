@@ -60,8 +60,22 @@ tcp6       0      0 :::8081                 :::*                    LISTEN      
 - create permission for role: nx-java 
 
 
+### Add plugin to build.gradle
+- apply plugin: 'maven-publish'
+
+### Add publishing block 
+- publications - Jar file configuration that we will upload 
+- repositories - Nexus repository that we are going to upload to 
+
+### Create properties files to hold user/pw
+- gradle.properties 
+
+### Change project name in settings.gradle
+- my-app      # -> Changed from java-app
 
 ### Upload Jar File to existing hosted repo on nexus
+- gradle publish
+
 
 
 ### Repository Types Created
