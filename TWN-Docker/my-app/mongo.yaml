@@ -1,5 +1,8 @@
-version: '3'
 services:
+  my-app:
+    image: 143.244.171.154:8083/my-app:1.0
+    ports:
+     - 3000:3000
   mongodb:
     image: mongo
     ports:

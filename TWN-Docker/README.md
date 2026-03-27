@@ -1,7 +1,7 @@
 # Module 7 — Containers with Docker
 
-## What I Built
-[Fill in after completing the module]
+## What I Built → js-app with MongoDB + Mongo Express
+## Private Registry Port → 8083
 
 - postgres locally running. 
 - docker ps
@@ -161,6 +161,68 @@ mongo           latest    95a98776f273   8 months ago   1.22GB
 mongo-express   latest    1b23d7976f02   2 years ago    286MB
 postgres        13.10     8f81e1428679   2 years ago    536MB
 
+
+### Docker Login to the repository we create on nexus
+- ❯ docker login <neux ip>:8083
+Username: admin
+Password:
+Login Succeeded
+
+### push image to docker repository 
+docker push <nexus ip>:8083/my-app:1.0
+The push refers to repository [<nexus ip>:8083/my-app]
+c7734204880f: Pushed
+589002ba0eae: Pushed
+4f4fb700ef54: Pushed
+d7f6aca05b78: Pushed
+62e0e1181d88: Pushed
+66d50a29f112: Pushed
+e7a856319a82: Pushed
+64b74e1b2197: Pushed
+aa6876adc735: Pushed
+1.0: digest: sha256:abe74cb7b40f260ecf3e3daf48c81258991bce3110faf72d1d2dd3f09b5a3d10 size: 856
+
+
+### Use API to retrieve docker repo on nexus
+- ❯ curl -u <user>:<password> -X GET 'http://<nexus ip>:8081/service/rest/v1/components?repository=docker-hosted'
+{
+  "items" : [ {
+    "id" : "ZG9ja2VyLWhvc3RlZDo0ZjFiYmNkZA",
+    "repository" : "docker-hosted",
+    "format" : "docker",
+    "group" : "",
+    "name" : "my-app",
+    "version" : "1.0",
+    "assets" : [ {
+      "downloadUrl" : "http://<nexus ip>:8081/repository/docker-hosted/v2/my-app/manifests/1.0",
+      "path" : "/v2/my-app/manifests/1.0",
+      "id" : "ZG9ja2VyLWhvc3RlZDphMmEwMTBmMw",
+      "repository" : "docker-hosted",
+      "format" : "docker",
+      "checksum" : {
+        "sha1" : "edaee23960e760da39b64bb55e5fe1510ab86172",
+        "sha256" : "abe74cb7b40f260ecf3e3daf48c81258991bce3110faf72d1d2dd3f09b5a3d10"
+      },
+      "contentType" : "application/vnd.oci.image.index.v1+json",
+      "lastModified" : "2026-03-27T06:15:54.226+00:00",
+      "lastDownloaded" : null,
+      "uploader" : "admin",
+      "uploaderIp" : "71.205.216.150",
+      "fileSize" : 856,
+      "blobCreated" : "2026-03-27T06:15:54.230+00:00",
+      "blobStoreName" : null,
+      "docker" : { }
+    } ]
+  } ],
+  "continuationToken" : null
+}%
+
+
+### Install Nexus on Docker 
+- snap install docker 
+- docker volume create --name nexus-data 
+- docker run -d -p 8081:8081 --name nexus -v nexus-data:/nexus-data sonatype/nexus3
+ 
 
 ## Key Docker Commands Used
 - docker run -e POSTGRES_PASSWORD=mysecretpassword postgres:13.10
