@@ -264,6 +264,18 @@ ERROR: Couldn't find any revision to build. Verify the repository and branch con
 - Resolution: `git pull --rebase origin jenkins-jobs`
 - Set as default: `git config --global pull.rebase true`
 
+
+### Docker build could not find Dockerfile
+- Error: `open Dockerfile: no such file or directory`
+- Cause: Jenkins runs commands from repo root, not project subfolder
+- Resolution: Added `cd TWN-Jenkins/java-maven-app` before docker build
+
+### Docker could not find JAR file
+- Error: `lstat /target: no such file or directory`  
+- Cause: Maven POM path was wrong, JAR built in wrong directory
+- Resolution: Set POM path to `TWN-Jenkins/java-maven-app/pom.xml`
+
+
 ## Key Concepts
 - Jenkins automates everything you did manually in modules 4-7
 - Jenkinsfile lives in the repo alongside the code
