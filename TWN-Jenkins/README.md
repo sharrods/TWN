@@ -109,9 +109,86 @@ First time build. Skipping changelog.
 [my-job] $ /var/jenkins_home/tools/hudson.tasks.Maven_MavenInstallation/maven-3.9/bin/mvn --version
 
 
+### Jar file created from mvn test and mvn package. 
+jenkins@0ca1d6e41d05:/$ ls /var/jenkins_home/workspace/java-maven-build
+jenkins@0ca1d6e41d05:/$ ls /var/jenkins_home/workspace/java-maven-build/target/
+java-maven-app-1.1.0-SNAPSHOT.jar  java-maven-app-1.1.0-SNAPSHOT.jar.original  maven-archiver
 
-- Nexus credentials
-- Docker registry credentials
+
+### Create new contain but keep the volume that was created before.
+- docker run -p 8080:8080 -p 50000:50000 -d \
+-v jenkins_home:/var/jenkins_home \
+-v /var/run/docker.sock:/var/run/docker.sock jenkins/jenkins:lts
+
+### Run docker inside the container and install 
+root@e730c15e2a81:/# curl https://get.docker.com/ > dockerinstall && chmod 777 dockerinstall && ./dockerinstall
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100 22405  100 22405    0     0   493k      0 --:--:-- --:--:-- --:--:--  497k
+# Executing docker install script, commit: f381ee68b32e515bb4dc034b339266aff1fbc460
++ sh -c apt-get -qq update >/dev/null
++ sh -c DEBIAN_FRONTEND=noninteractive apt-get -y -qq install ca-certificates curl >/dev/null
++ sh -c install -m 0755 -d /etc/apt/keyrings
++ sh -c curl -fsSL "https://download.docker.com/linux/debian/gpg" -o /etc/apt/keyrings/docker.asc
++ sh -c chmod a+r /etc/apt/keyrings/docker.asc
++ sh -c echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian trixie stable" > /etc/apt/sources.list.d/docker.list
++ sh -c apt-get -qq update >/dev/null
++ sh -c DEBIAN_FRONTEND=noninteractive apt-get -y -qq install docker-ce docker-ce-cli containerd.io docker-compose-plugin docker-ce-rootless-extras docker-buildx-plugin docker-model-plugin >/dev/null
+Using systemd to manage Docker service
++ sh -c systemctl enable --now docker.service
+WARNING: unable to enable the docker service
+
++ sh -c docker version
+Client: Docker Engine - Community
+ Version:           29.3.1
+ API version:       1.50 (downgraded from 1.54)
+ Go version:        go1.25.8
+ Git commit:        c2be9cc
+ Built:             Wed Mar 25 16:13:49 2026
+ OS/Arch:           linux/amd64
+ Context:           default
+
+Server:
+ Engine:
+  Version:          28.2.2
+  API version:      1.50 (minimum version 1.24)
+  Go version:       go1.23.1
+  Git commit:       28.2.2-0ubuntu1~24.04.1
+  Built:            Wed Sep 10 14:16:39 2025
+  OS/Arch:          linux/amd64
+  Experimental:     false
+ containerd:
+  Version:          1.7.28
+  GitCommit:
+ runc:
+  Version:          1.3.3-0ubuntu1~24.04.3
+  GitCommit:
+ docker-init:
+  Version:          0.19.0
+  GitCommit:
+
+### Change permissions on docker socket file so we can run commands inside container as jenkins user
+- root@e730c15e2a81:/# ls -l /var/run/docker.sock
+srw-rw---- 1 root 112 0 Mar 27 16:16 /var/run/docker.sock
+- root@e730c15e2a81:/# chmod 666 /var/run/docker.sock
+- root@e730c15e2a81:/# ls -l /var/run/docker.sock
+srw-rw-rw- 1 root 112 0 Mar 27 16:16 /var/run/docker.sock
+
+jenkins@e730c15e2a81:/$ docker pull redis
+Using default tag: latest
+latest: Pulling from library/redis
+ec781dee3f47: Pull complete
+5f7274725e4f: Pull complete
+f4f2f7018ed9: Pull complete
+3f63903b0cb8: Pull complete
+c9ff57cee690: Pull complete
+4f4fb700ef54: Pull complete
+3e6b2202a764: Pull complete
+Digest: sha256:009cc37796fbdbe1b631b4cc0582bed167e5e403ed8bcd06f77eb6cb5aeb6f93
+Status: Downloaded newer image for redis:latest
+docker.io/library/redis:latest
+
+
 
 ## Freestyle Job vs Pipeline Job
 | Type | Use Case |
@@ -175,7 +252,17 @@ ERROR: Couldn't find any revision to build. Verify the repository and branch con
     - Resolved
 	Changed master —> main 
 
+### Jenkins could not find pom.xml
+- Error: `No POM in this directory (/var/jenkins_home/workspace/java-maven-build)`
+- Cause: Jenkins looks for pom.xml in repo root by default
+- Resolution: Set POM path in job config
+  - Build → Invoke top-level Maven targets → Advanced → POM
+  - Value: `TWN-BuildTools/java-maven-app/pom.xml`
 
+### Local and remote branches diverged
+- Error: `Need to specify how to reconcile divergent branches`
+- Resolution: `git pull --rebase origin jenkins-jobs`
+- Set as default: `git config --global pull.rebase true`
 
 ## Key Concepts
 - Jenkins automates everything you did manually in modules 4-7
