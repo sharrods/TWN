@@ -1,7 +1,10 @@
 # Module 8 — CI/CD with Jenkins
 
 ## What I Built
-[Fill in after completing the module]
+Deployed Jenkins in Docker on a DigitalOcean Droplet. 
+Built a CI/CD pipeline that pulls from GitHub, builds 
+a JAR with Maven, and packages it into a Docker image
+
 
 ## Droplet Specs
 - Ubuntu 24.04
