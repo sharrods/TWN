@@ -1,5 +1,4 @@
 def gv
-:w
 pipeline {   
     agent any
     parameters {
