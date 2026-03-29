@@ -1,4 +1,4 @@
-def buildApp() {
+def buildJar() {
     echo 'building the application...'
     sh 'mvn -f TWN-Jenkins/java-maven-app package'
 }
