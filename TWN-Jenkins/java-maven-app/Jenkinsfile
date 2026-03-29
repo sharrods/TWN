@@ -4,22 +4,24 @@ pipeline {
         maven 'maven-3.9'
     }
     stages {
+        stage("init") {
+            steps {
+                script {
+                    gv = load "script.groovy"
+                }
+            }
+        }
         stage("build jar") {
             steps {
                 script {
-                    echo "building the application..."
-                    sh 'mvn -f TWN-Jenkins/java-maven-app package'
+                    gv.buildJar()
                 }
             }
         }
         stage("build image") {
             steps {
                 script {
-                    echo "building the docker image..."
-                    withCredentials([usernamePassword(credentialsId: 'docker-hub-repo', passwordVariable: 'PASS', usernameVariable: 'USER' )]) {
-                        sh 'docker build -t sharrods/demo-app:jma-2.0 -f TWN-Jenkins/java-maven-app/Dockerfile TWN-Jenkins/java-maven-app'
-                        sh 'echo $PASS | docker login -u $USER --password-stdin'
-                        sh 'docker push sharrods/demo-app:jma-2.0'
+                    gv.buildImage()
                     }
                 }
             }
@@ -28,7 +30,7 @@ pipeline {
         stage("deploy") {
             steps {
                 script {
-                    echo "deploying the application..."
+                    gv.deploy()
                 }
             }
         }
