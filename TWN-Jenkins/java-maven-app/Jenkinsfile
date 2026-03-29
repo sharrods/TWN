@@ -9,7 +9,7 @@ pipeline {
         stage("init") {
             steps {
                 script {
-                    gv = load "TWN-Jenkins/java-maven-app"
+                    gv = load "TWN-Jenkins/java-maven-app/script.groovy"
                 }
             }
         }
