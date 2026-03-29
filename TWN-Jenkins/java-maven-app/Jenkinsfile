@@ -8,7 +8,7 @@ pipeline {
             steps {
                 script {
                     echo "building the application..."
-                    sh 'mvn package TWN-Jenkins/java-maven-app'
+                    sh 'mvn -f TWN-Jenkins/java-maven-app package'
                 }
             }
         }
