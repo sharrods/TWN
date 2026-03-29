@@ -16,7 +16,7 @@ pipeline {
             steps {
                 script {
                     echo "building the docker image..."
-                    withCredentials([usernamePasssword(credentialsId: 'docker-hub-repo', passwordVariable: 'PASS', usernameVariable: 'USER' )]) {
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-repo', passwordVariable: 'PASS', usernameVariable: 'USER' )]) {
                         sh 'docker build -t sharrods/demo-app:jma-2.0 -f TWN-Jenkins/java-maven-app'
                         sh 'echo $PASS | docker login -u $USER --password-stdin'
                         sh 'docker push 143.244.171.154:8083/java-maven-app:2.0'
