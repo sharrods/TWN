@@ -4,6 +4,17 @@ pipeline {
         maven 'maven-3.9'
     }
     stages {
+        stage('check commit') {
+            steps {
+                script {
+                    def commitMsg = sh(script: 'git log -1 --pretty=%B', returnStdout: true).trim()
+                    if (commitMsg.startsWith('ci:')) {
+                        currentBuild.result = 'NOT_BUILT'
+                        error('Skipping CI commit to prevent loop')
+                    }
+                }
+            }
+        }
          stage('increment version') {
             steps {
                 script {
