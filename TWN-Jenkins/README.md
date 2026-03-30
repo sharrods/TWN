@@ -462,6 +462,43 @@ cript.groovy not found by Jenkins
 - Rule: Maven versions plugin always uses plural — versions:set, versions:commit
 
 
+## Complete Working Jenkinsfile Pipeline
+
+### Pipeline Stages
+1. **increment version** — reads pom.xml version, increments patch number, 
+   sets IMAGE_NAME env variable with version and build number
+2. **build app** — runs mvn clean package to build JAR
+3. **build image** — builds Docker image tagged with IMAGE_NAME, 
+   pushes to DockerHub
+4. **deploy** — placeholder for deployment step
+5. **commit version update** — commits incremented pom.xml version 
+   back to GitHub so next build starts from new version
+
+### CI Loop Prevention
+- **Problem:** Jenkins commits version bump back to GitHub which 
+  triggers another build creating an infinite loop
+- **My approach:** Added 'check commit' stage checking for 'ci:' prefix
+  in commit message — worked but added complexity to Jenkinsfile
+- **Nana's approach:** Install **Ignore Committer Strategy** plugin
+  - Manage Jenkins → Configure → Branch Sources → Build Strategies
+  - Add strategy: Ignore Committer Strategy
+  - Add Jenkins user email: `jenkins@example.com`
+  - Jenkins automatically skips builds triggered by its own commits
+  - Cleaner — no Jenkinsfile changes needed
+- **Resolution:** Removed manual check commit stage, 
+  installed Ignore Committer Strategy plugin ✅
+
+### Key Lessons
+- Jenkins workspace is ephemeral — version bump must be committed 
+  back to Git or next build starts from same version
+- Each sh command runs in fresh shell — use && or -f flag for paths
+- env.IMAGE_NAME needs = for assignment not just space
+- withCredentials variables use $VAR not ${VAR} in single quotes
+- git remote set-url with credentials allows Jenkins to push to GitHub
+- Build tag and push tag must always match exactly
+
+
+
 ## Key Concepts
 - Jenkins automates everything you did manually in modules 4-7
 - Jenkinsfile lives in the repo alongside the code
