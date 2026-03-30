@@ -1,6 +1,5 @@
-def buildApp() {
+def buildJar() {
     echo 'building the application...'
-<<<<<<< HEAD
     sh 'mvn -f TWN-Jenkins/java-maven-app package'
 }
 
@@ -11,20 +10,10 @@ def buildImage() {
         sh 'echo $PASS | docker login -u $USER --password-stdin'
         sh 'docker push sharrods/demo-app:jma-2.1'
     }
-=======
-}
-
-def testdApp() {
-    echo 'testing the application...'
->>>>>>> 8332410 (Add Module 8 Jenkinsfiles, script.groovy updates and shared library)
 }
 
 def deployApp() {
     echo 'deploying the application...'
     echo "deploying version ${params.VERSION}"
 }
-<<<<<<< HEAD
 return this
-=======
-return this
->>>>>>> 8332410 (Add Module 8 Jenkinsfiles, script.groovy updates and shared library)
