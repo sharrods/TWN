@@ -191,6 +191,24 @@ Digest: sha256:009cc37796fbdbe1b631b4cc0582bed167e5e403ed8bcd06f77eb6cb5aeb6f93
 Status: Downloaded newer image for redis:latest
 docker.io/library/redis:latest
 
+### Push to private docker repository 
+jma-1.1: digest: sha256:947267eb942d681d234c24d46a6d80e5628753a6a8b8eef1c0f7fd21ade0059d size: 1159
+Finished: SUCCESS
+
+
+### Push to nexus private docker repo 
+- restart docker 
+    - systemctl restart docker
+    - docker ps 
+    - start docker back up 
+
+root@ubuntu-s-2vcpu-4gb-nyc1-01:~# docker start e730c15e2a81
+e730c15e2a81
+root@ubuntu-s-2vcpu-4gb-nyc1-01:~# docker ps
+CONTAINER ID   IMAGE                 COMMAND                  CREATED       STATUS         PORTS                                                                                          NAMES
+e730c15e2a81   jenkins/jenkins:lts   "/usr/bin/tini -- /u…"   2 hours ago   Up 2 seconds   0.0.0.0:8080->8080/tcp, [::]:8080->8080/tcp, 0.0.0.0:50000->50000/tcp, [::]:50000->50000/tcp   relaxed_aryabhata
+
+
 
 
 ## Freestyle Job vs Pipeline Job
@@ -244,6 +262,19 @@ Code Push → GitHub → Jenkins Trigger → Build → Test → Push Artifact �
 - Nexus: pushes JAR artifacts and Docker images
 - DigitalOcean server: deploys the application
 
+
+### Jenkins files, pipeplines and replay features. 
+- Parameters with expression 
+- paramters with user input 
+- basic build steps
+- parameters with groovy script
+- jenkensfile wtih envrionment
+- replay in jenkins files 
+
+
+
+
+
 ## Issues and Resolutions
 ### Github connection failures. 
 - github no longer lets you use username/password. 
@@ -277,6 +308,95 @@ ERROR: Couldn't find any revision to build. Verify the repository and branch con
 - Error: `lstat /target: no such file or directory`  
 - Cause: Maven POM path was wrong, JAR built in wrong directory
 - Resolution: Set POM path to `TWN-Jenkins/java-maven-app/pom.xml`
+
+
+### Docker push failed - tag does not exist
+- Error: `tag does not exist: sharrods/demo-app:jma-1.1`
+- Cause: Build tag and push tag were mismatched
+- Resolution: Ensure docker build -t and docker push use identical tags
+
+### Jenkins could not push to Nexus Docker registry
+- Error: `context deadline exceeded` connecting to Nexus
+- Cause: Jenkins server IP not in Nexus firewall inbound rules
+- Resolution: Added Jenkins server IP to Nexus droplet firewall
+- Lesson: All server-to-server communication needs explicit firewall rules
+
+
+
+cript.groovy not found by Jenkins
+- Error: `NoSuchFileException: /var/jenkins_home/workspace/my-pipeline/script.groovy`
+- Cause: Jenkins looks for script.groovy in workspace root by default
+- Resolution: Update load path in Jenkinsfile to match actual file location
+  - Wrong:  `gv = load "script.groovy"`
+  - Fixed:  `gv = load "TWN-Jenkins/java-maven-app/script.groovy"`
+
+### MissingPropertyException - function not found
+- Error: `MissingPropertyException: No such property: buildApp`
+- Cause: Two issues combined:
+  1. Calling function without script object reference
+  2. Missing () on function calls — referencing function instead of calling it
+- Resolution:
+  - Always call functions through the loaded script object: `gv.buildApp()`
+  - Always include () to actually execute the function
+  - Wrong:  `buildApp`     ← no object reference, no call
+  - Wrong:  `gv.buildApp`  ← has object reference but never executes
+  - Fixed:  `gv.buildApp()` ← correct object reference with execution
+
+## Key Groovy Concepts
+- `return this` at bottom of script.groovy makes functions accessible
+- `def gv = load "path/script.groovy"` loads the script as an object
+- All functions must be called through that object: `gv.functionName()`
+- Single quotes = literal string, no variable substitution
+- Double quotes = variables get substituted: `"deploying ${VERSION}"`
+- `()` executes a function — without it you are just referencing it
+
+### mvn package running from wrong directory
+- Error: No POM in workspace root
+- Cause: Each sh command runs in a fresh shell
+  so `sh 'cd path'` has no effect on next sh command
+- Resolution: Use mvn -f flag to specify pom.xml location
+  - Wrong: `sh 'cd TWN-Jenkins/java-maven-app && mvn package'`
+  - Better: `sh 'mvn -f TWN-Jenkins/java-maven-app package'`
+- The -f flag tells Maven exactly where the pom.xml lives
+  without needing to change directories
+
+### Docker build issues in Jenkinsfile pipeline
+
+#### Misspelled usernamePassword in withCredentials
+- Error: `No such DSL method 'usernamePasssword'`
+- Cause: Typo — three s's in password
+- Resolution: `usernamePassword` — two s's only
+
+#### docker build requires 1 argument
+- Error: `docker buildx build requires 1 argument`
+- Cause: Missing build context (the `.` at the end)
+- Resolution: Always end docker build with context path
+  - Fixed: `docker build -t image:tag .`
+
+#### Dockerfile not found after adding .
+- Error: `open Dockerfile: no such file or directory`
+- Cause: Running docker build from wrong directory
+- Resolution: Use -f to specify Dockerfile path explicitly
+
+#### -f flag pointing to directory instead of file
+- Error: `read java-maven-app: is a directory`
+- Cause: -f flag must point to the Dockerfile file not the folder
+- Wrong:  `docker build -t app:1.0 -f TWN-Jenkins/java-maven-app .`
+- Fixed:  `docker build -t app:1.0 -f TWN-Jenkins/java-maven-app/Dockerfile TWN-Jenkins/java-maven-app`
+- Rule: -f = path to Dockerfile, last argument = build context directory
+
+
+### Tag mismatch on docker push to docker hub
+- Error: `tag does not exist: 143.244.171.154:8083/java-maven-app:2.0`
+- Cause: Built image with sharrods/demo-app:jma-2.0 tag
+  but tried to push with Nexus tag that was never created
+- Resolution: Push the same tag that was built
+  - Build:  `docker build -t sharrods/demo-app:jma-2.0`
+  - Push:   `docker push sharrods/demo-app:jma-2.0`
+- Rule: You can only push a tag that exists locally
+
+
+
 
 
 ## Key Concepts
