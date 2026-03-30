@@ -469,3 +469,7 @@ cript.groovy not found by Jenkins
 - Jenkins needs same build tools as your local machine
 - Credentials stored in Jenkins — never hardcoded in Jenkinsfile
 - Each stage in the pipeline maps to a step you already did manually
+- Running tests and publishing test results are two separate things
+- mvn test runs the tests
+- junit 'target/surefire-reports/*.xml' publishes results to Jenkins UI
+- Without the junit step Jenkins has no visibility into test pass/fail
