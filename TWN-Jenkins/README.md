@@ -372,7 +372,7 @@ ERROR: Couldn't find any revision to build. Verify the repository and branch con
 
 
 
-cript.groovy not found by Jenkins
+### Script.groovy not found by Jenkins
 - Error: `NoSuchFileException: /var/jenkins_home/workspace/my-pipeline/script.groovy`
 - Cause: Jenkins looks for script.groovy in workspace root by default
 - Resolution: Update load path in Jenkinsfile to match actual file location
