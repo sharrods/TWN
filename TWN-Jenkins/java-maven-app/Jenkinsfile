@@ -1,26 +1,48 @@
 pipeline {
-    agent any
+    agent any 
+    tools {
+        maven 'maven-3.9'
+    }
     stages {
-        stage("test") {
-            steps {
-                script{
-                    echo "Testing the application..."
-                }
-            }
-        }
-        stage("build") {
+         stage('increment version') {
             steps {
                 script {
-                    echo "Building the application..."
+                    echo 'ingrementing app version...'
+                    sh 'mvn -f TWN-Jenkins/java-maven-app build-helper:parse-version versions:set \
+                    -DnewVersion=\\\${parsedVersion.majorVersion}.\\\${parsedVersion.minorVersion}.\\\${parsedVersion.nextIncrementalVersion} versions:commit'
+                    def matcher = readFile('TWN-Jenkins/java-maven-app/pom.xml') =~ '<version>(.+)</version>'
+                    def version = matcher[0][1]
+                    env.IMAGE_NAME "$version-$BUILD_NUMBER" 
                 }
             }
         }
+        stage("build app") {
+            steps {
+                script {
+                    echo "building the application..."
+                    sh 'mvn -f TWN-Jenkins/java-maven-app clean package'
+                }
+            }
+        }
+        stage("build image") {
+            steps {
+                script {
+                    echo "building the docker image..."
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-repo', passwordVariable: 'PASS', usernameVariable: 'USER' )]) {
+                        sh "docker build -t sharrods/demo-app:${IMAGE_NAME} -f TWN-Jenkins/java-maven-app/Dockerfile TWN-Jenkins/java-maven-app"
+                        sh 'echo $PASS | docker login -u $USER --password-stdin'
+                        sh "docker push sharrods/demo-app:${IMAGE_NAME}"
+                    }
+                }
+            }
+        }
+        
         stage("deploy") {
             steps {
                 script {
-                    echo 'Deploying the application...'
-                }                
+                    echo "deploying the application..."
+                }
             }
         }
-    }               
-} 
+    }
+}

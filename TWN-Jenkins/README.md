@@ -311,7 +311,15 @@ Code Push → GitHub → Jenkins Trigger → Build → Test → Push Artifact �
         - http://137.184.221.131:8080/multibranch-webhook-trigger/invoke?token=githubtoken
 
 ### Versioning Increment 
- 
+   - mvn build-helper:parse-version 
+   - add the command to the build pipeline
+   - before build app stage you will add increment step
+   - change docker file to use java-maven-app-*.jar
+   - remove entry point. 
+        - CMD java -jar java-maven-app-*.jar
+
+
+
 
 
 ## Issues and Resolutions
