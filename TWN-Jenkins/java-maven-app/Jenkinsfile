@@ -42,7 +42,6 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'docker-hub-repo', passwordVariable: 'PASS', usernameVariable: 'USER' )]) {
                         sh "docker build -t sharrods/demo-app:${IMAGE_NAME} -f TWN-Jenkins/java-maven-app/Dockerfile TWN-Jenkins/java-maven-app"
                         sh 'echo $PASS | docker login -u $USER --password-stdin'
-                        sh "docker push sharrods/demo-app:${IMAGE_NAME}"
                     }
                 }
             }
