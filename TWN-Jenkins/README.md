@@ -317,6 +317,8 @@ Code Push → GitHub → Jenkins Trigger → Build → Test → Push Artifact �
    - change docker file to use java-maven-app-*.jar
    - remove entry point. 
         - CMD java -jar java-maven-app-*.jar
+   - jenkins file changes
+        - change the hardcoded items
 
 
 
@@ -443,7 +445,21 @@ cript.groovy not found by Jenkins
 - Rule: You can only push a tag that exists locally
 
 
+### Failed to set environment variable in Jenkinsfile
+- Error: `RejectedAccessException: Scripts not permitted to use method 
+  groovy.lang.GroovyObject invokeMethod java.lang.String java.lang.Object`
+- Cause: Missing `=` when setting env variable
+  Groovy interpreted it as a method call instead of an assignment
+- Wrong:  `env.IMAGE_NAME "$version-$BUILD_NUMBER"`
+- Fixed:  `env.IMAGE_NAME = "$version-$BUILD_NUMBER"`
+- Rule: Always use `=` when assigning environment variables in Jenkinsfile
 
+### Maven version plugin not found
+- Error: `No plugin found for prefix 'version'`
+- Cause: Typo — plugin name is `versions` (plural) not `version`
+- Wrong:  `mvn build-helper:parse-version version:set versions:commit`
+- Fixed:  `mvn build-helper:parse-version versions:set versions:commit`
+- Rule: Maven versions plugin always uses plural — versions:set, versions:commit
 
 
 ## Key Concepts
