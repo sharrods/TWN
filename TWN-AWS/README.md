@@ -98,16 +98,17 @@
 - **Elastic IP** — static public IP address
 
 ### EC2 Instance Created
-- Instance Type: [fill in]
-- AMI: [fill in e.g. Ubuntu 22.04]
-- Region: [fill in]
-- VPC: [fill in]
+- Instance Type:t3.micro	 
+- AMI: al2023-ami-2023.10.20260325.0-kernel-6.1-x86_64
+- AMIID: ami-0c3389a4fa5bddaad
+- Region: N.Virginia 
+- VPC: 
 - Subnet: [fill in]
 - Security Group: [fill in]
 - Key Pair: [fill in]
 
 ### Connect to EC2
-ssh -i ~/.ssh/<key-name>.pem ubuntu@<ec2-public-ip>
+ssh -i ~/.ssh/<key-name>.pem ec2-user@<ec2-public-ip>
 
 ### Security Group Rules
 | Type | Protocol | Port | Source | Purpose |
@@ -115,6 +116,21 @@ ssh -i ~/.ssh/<key-name>.pem ubuntu@<ec2-public-ip>
 | SSH | TCP | 22 | My IP | Admin access |
 | Custom | TCP | 8080 | 0.0.0.0/0 | Jenkins |
 | Custom | TCP | 3000 | 0.0.0.0/0 | App port |
+
+
+### Install Docker
+- sudo yum install docker 
+- sudo service docker start
+    - [ec2-user@ip-10-2-0-206 ~]$ sudo service docker start
+      Redirecting to /bin/systemctl start docker.service
+- push Dockerfile to private docker repo on dockerhub
+- build using node:20 
+- from AWS ec2 pull the created image
+    - [ec2-user@ip-10-2-0-206 ~]$ docker ps
+CONTAINER ID   IMAGE                   COMMAND                  CREATED         STATUS        PORTS                                       NAMES
+78646d678982   sharrods/demo-app:1.0   "docker-entrypoint.s…"   3 seconds ago   Up 1 second   0.0.0.0:3000->3080/tcp, :::3000->3080/tcp   eager_bartik
+- add my <IP/32>:3000 to the inbound security group.  
+
 
 ---
 
@@ -216,6 +232,10 @@ aws ecr get-login-password --region <region>
 
 ## Issues and Resolutions
 [Document as you go]
+- docker build using node:10 failed
+    - Resolved: checked discord and seen people used node:20 
+
+
 
 ---
 
