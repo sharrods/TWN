@@ -2,8 +2,8 @@
 
 library identifier: 'jenkins-shared-library@master', retriever: modernSCM(
     [$class: 'GitSCMSource',
-    remote: 'https://github.com/sharrods/TWN.git',
-    credentialsID: 'github-creds'
+    remote: 'https://gitlab.com/twn-devops-bootcamp/latest/09-aws/jenkins-shared-library.git',
+    credentialsID: 'gitlab-credentials'
     ]
 )
 
@@ -13,7 +13,7 @@ pipeline {
         maven 'Maven'
     }
     environment {
-        IMAGE_NAME = 'sharrods/demo-app:java-maven-1.0'
+        IMAGE_NAME = 'nanatwn/demo-app:java-maven-1.0'
     }
     stages {
         stage('build app') {
@@ -36,9 +36,9 @@ pipeline {
             steps {
                 script {
                     echo 'deploying docker image to EC2...'
-                    def dockerCmd = "docker run -p 8080:8080 -d ${IMAGE_NAME}"
+                    def dockerCmd = "docker run -p 3080:3080 -d ${IMAGE_NAME}"
                     sshagent(['ec2-server-key']) {
-                        sh "ssh -o StrictHostKeyChecking=no ec2-user@100.53.55.144 ${dockerCmd}"
+                        sh "ssh -o StrictHostKeyChecking=no ec2-user@18.184.54.160 ${dockerCmd}"
                     }
                 }
             }               
