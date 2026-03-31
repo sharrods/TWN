@@ -1,19 +1,19 @@
 def buildJar() {
     echo 'building the application...'
-    sh 'mvn package'
+    sh 'mvn -f TWN-Jenkins/java-maven-app package'
 }
-j
+
 def buildImage() {
     echo "building the docker image..."
-    withCredentials([usernamePassword(credentialsId: 'docker-hub-repo', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-        sh 'docker build -t sharroddev/demo-app:jma-1.1 .'
+    withCredentials([usernamePassword(credentialsId: 'docker-hub-repo', passwordVariable: 'PASS', usernameVariable: 'USER' )]) {
+        sh 'docker build -t sharrods/demo-app:jma-2.1 -f TWN-Jenkins/java-maven-app/Dockerfile TWN-Jenkins/java-maven-app'
         sh 'echo $PASS | docker login -u $USER --password-stdin'
-        sh 'docker push sharroddev/demo-app:jma-1.1'
+        sh 'docker push sharrods/demo-app:jma-2.1'
     }
 }
 
 def deployApp() {
     echo 'deploying the application...'
+    echo "deploying version ${params.VERSION}"
 }
-
 return this
