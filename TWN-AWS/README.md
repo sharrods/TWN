@@ -131,10 +131,16 @@ CONTAINER ID   IMAGE                   COMMAND                  CREATED         
 78646d678982   sharrods/demo-app:1.0   "docker-entrypoint.s…"   3 seconds ago   Up 1 second   0.0.0.0:3000->3080/tcp, :::3000->3080/tcp   eager_bartik
 - add my <IP/32>:3000 to the inbound security group.  
 
-
 ---
 
 ## Lessons 8-10 — Deploy to EC2 from Jenkins Pipeline
+
+- Create new credentials in Jenkins 
+- Add credentials ssh agent in Jenkinsfile
+- ssh to AWS ec2 instance 
+
+
+
 
 ### What I Built
 CI/CD pipeline that deploys Docker container to EC2 after build
