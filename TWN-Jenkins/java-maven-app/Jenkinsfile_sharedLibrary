@@ -1,26 +1,11 @@
-<<<<<<< HEAD
 pipeline {
     agent any
-=======
-def gv
-
-pipeline {
-    agent any 
-    tools {
-        maven 'maven-3.9'
-    }
->>>>>>> jenkins-jobs
     stages {
         stage("test") {
             steps {
-<<<<<<< HEAD
                 script{
                     echo "Testing the application..."
                     echo "Exectuting pipeline for branch $BRANCH_NAME"
-=======
-                script {
-                    gv = load "TWN-Jenkins/java-maven-app/script.groovy"
->>>>>>> jenkins-jobs
                 }
             }
         }
@@ -32,31 +17,16 @@ pipeline {
             }
             steps {
                 script {
-<<<<<<< HEAD
                     echo "Building the application..."
                 }
             }
         }
-=======
-                    gv.buildJar()
-                }
-            }
-        }
-        stage("build image") {
-            steps {
-                script {
-                    gv.buildImage()
-                }
-            }
-        }
->>>>>>> jenkins-jobs
         stage("deploy") {
             when {
                 expression {
                     BRANCH_NAME == "main"
                 }
             }
-<<<<<<< HEAD
             steps {
                 script {
                     echo 'Deploying the application...'
@@ -65,8 +35,3 @@ pipeline {
         }
     }               
 } 
-=======
-        }
-    }
-}
->>>>>>> jenkins-jobs
