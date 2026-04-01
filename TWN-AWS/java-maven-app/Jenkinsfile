@@ -1,50 +1,36 @@
-#!/usr/bin/env groovy
+#!/usr/bin.env groovy
 
-pipeline {
+pipeline {   
     agent any
-    tools {
-        maven 'maven-3.9'
-    }
-    environment {
-        IMAGE_NAME = 'sharrods/demo-app:java-maven-1.5'
-    }
     stages {
-        stage('build app') {
+        stage("test") {
             steps {
                 script {
-                    echo 'building application jar...'
-                    sh 'mvn -f TWN-AWS/java-maven-app/pom.xml clean package'
+                    echo "Testing the application..."
+
                 }
             }
         }
-        stage('build image') {
+        stage("build") {
             steps {
                 script {
-                    echo 'building the docker image...'
-                    withCredentials([usernamePassword(credentialsId: 'docker-hub-repo', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-                        sh "docker build -t ${IMAGE_NAME} -f TWN-AWS/java-maven-app/Dockerfile TWN-AWS/java-maven-app"
-                        sh 'echo $PASS | docker login -u $USER --password-stdin'
-                        sh "docker push ${IMAGE_NAME}"
+                    echo "Building the application..."
+                }
+            }
+        }
+
+        stage("deploy") {
+            steps {
+                script {
+                    def dockerCmd = 'docker run -p 3080:3080 -d sharrods/demo-app:1.0'
+                    sshagent(['ec2-server-key']) {
+                        sh "ssh -o StrictHostKeyChecking=no ec2-user@100.53.55.144 ${dockerCmd}"
+
                     }
+                    echo "Deploying the application..."
+                    
                 }
             }
-        }
-        stage('deploy') {
-            steps {
-                script {
-                    echo 'deploying docker image to EC2...'
-                    def shellCmd = "bash -s"
-                    def dockerCmd = """
-                        docker stop java-maven-app || true
-                        docker rm java-maven-app || true
-                        docker pull ${IMAGE_NAME}
-                        docker run -d -p 8080:8080 --name java-maven-app ${IMAGE_NAME}
-                    """
-                    sshagent(['aws_multibranch_ec2']) {
-                        sh "ssh -o StrictHostKeyChecking=no ec2-user@100.53.55.144 '${dockerCmd}'"
-                    }
-                }
-            }
-        }
+        }               
     }
-}
+} 
