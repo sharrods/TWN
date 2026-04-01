@@ -23,8 +23,8 @@ pipeline {
                     echo 'deploying docker image to EC2...'
                     def dockerComposeCmd = "docker-compose -f docker-compose.yaml up --detach"
                     sshagent(['ec2-server-key']) {
-                        sh "scp TWN-AWS/java-maven-app/docker-compose.yaml ec2-user@18.184.54.160:/home/ec2-user"
-                        sh "ssh -o StrictHostKeyChecking=no ec2-user@18.184.54.160 ${dockerComposeCmd}"
+                        sh "scp TWN-AWS/java-maven-app/docker-compose.yaml ec2-user@100.53.55.144:/home/ec2-user"
+                        sh "ssh -o StrictHostKeyChecking=no ec2-user@100.53.55.144 ${dockerComposeCmd}"
                     }
                 }
             }
