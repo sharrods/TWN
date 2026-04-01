@@ -1,37 +1,47 @@
+#!/usr/bin/env groovy
+@library identifier: 'jenkins-shared-library@master', retriever: modernSCM(
+        [$class: 'GitSCMSource',
+         remote: 'https://github.com/sharrods/TWN.git',
+         credentialsId: 'gitlab-credentials'])
+
+def gv
+
 pipeline {
     agent any
+    tools {
+        maven 'Maven'
+    }
     stages {
-        stage("test") {
-            steps {
-                script{
-                    echo "Testing the application..."
-                    echo "Exectuting pipeline for branch $BRANCH_NAME"
-                }
-            }
-        }
-        stage("build") {
-            when {
-                expression {
-                    BRANCH_NAME == "main"
-                } 
-            }
+        stage("init") {
             steps {
                 script {
-                    echo "Building the application..."
+                    buildJar()
                 }
             }
         }
+
+        stage("build jar") {
+            steps {
+                script {
+                    buildJar()
+                }
+            }
+        }
+
+        stage("build and push image") {
+            steps {
+                script {
+                    buildImage() 
+                }
+            }
+        }
+
         stage("deploy") {
-            when {
-                expression {
-                    BRANCH_NAME == "main"
-                }
-            }
             steps {
                 script {
-                    echo 'Deploying the application...'
-                }                
+                    gv.deployApp()
+                }
             }
         }
-    }               
-} 
+    }
+}
