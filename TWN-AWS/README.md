@@ -139,11 +139,19 @@ CONTAINER ID   IMAGE                   COMMAND                  CREATED         
 - Add credentials ssh agent in Jenkinsfile
 - ssh to AWS ec2 instance 
 
+## What I Built
+Deployed a Java Maven application to AWS EC2 using a complete 
+CI/CD pipeline. Jenkins automatically builds the Docker image, 
+pushes to DockerHub, SSHes into EC2, and runs the container.
+
+## Jenkins to EC2 Connection
+- Added EC2 private key (.pem) to Jenkins credentials
+- Jenkins uses SSH agent to connect to EC2
+- Jenkins runs docker commands remotely on EC2
 
 
 
-### What I Built
-CI/CD pipeline that deploys Docker container to EC2 after build
+
 
 ### Pipeline Flow
 ```
