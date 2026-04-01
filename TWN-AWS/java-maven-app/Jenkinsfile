@@ -1,16 +1,16 @@
 #!/usr/bin/env groovy
 
-library identifier: 'jenkins-shared-library@main', retriever: modernSCM(
+library identifier: 'jenkins-shared-library@master', retriever: modernSCM(
     [$class: 'GitSCMSource',
     remote: 'https://github.com/sharrods/TWN.git',
-    credentialsID: 'github-creds'
-    ]
-)
+    credentialsID: 'github-creds'])
+
+def gv
 
 pipeline {
     agent any
     tools {
-        maven 'maven-3.9' 
+        maven 'Maven'
     }
     environment {
         IMAGE_NAME = 'sharrods/demo-app:java-maven-1.0'
@@ -37,7 +37,7 @@ pipeline {
                 script {
                     echo 'deploying docker image to EC2...'
                     def dockerCmd = "docker run -p 8080:8080 -d ${IMAGE_NAME}"
-                    sshagent(['ec2-server-key']) {
+                    sshagent(['aws_multibranch_ec2']) {
                         sh "ssh -o StrictHostKeyChecking=no ec2-user@100.53.55.144 ${dockerCmd}"
                     }
                 }
