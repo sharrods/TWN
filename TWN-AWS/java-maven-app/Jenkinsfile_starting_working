@@ -1,0 +1,48 @@
+#!/usr/bin/env groovy
+
+pipeline {
+    agent any
+    tools {
+        maven 'maven-3.9'
+    }
+    environment {
+        IMAGE_NAME = 'sharrods/demo-app:java-maven-2.0'
+    }
+    stages {
+        stage('build app') {
+            steps {
+                script {
+                    echo 'building application jar...'
+                    sh 'mvn -f TWN-AWS/java-maven-app/pom.xml clean package'
+                }
+            }
+        }
+        stage('build image') {
+            steps {
+                script {
+                    echo 'building docker image...'
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-repo', passwordVariable: 'PASS', usernameVariable: 'USER' )]) {
+                        sh "docker build -t ${IMAGE_NAME} -f TWN-AWS/java-maven-app/Dockerfile TWN-AWS/java-maven-app"
+                        sh 'echo $PASS | docker login -u $USER --password-stdin'
+                        sh "docker push ${IMAGE_NAME}"
+                    }
+                }
+            }
+        }
+        stage('deploy') {
+            steps {
+                script {
+                    echo 'deploying docker image to EC2...'
+
+                    def shellCmd =  "bash ./server-cmds.sh ${IMAGE_NAME}"
+
+                    sshagent(['ec2-server-key']) {
+                        sh "scp TWN-AWS/java-maven-app/server-cmds.sh ec2-user@100.53.55.144:/home/ec2-user"
+                        sh "scp TWN-AWS/java-maven-app/docker-compose.yaml ec2-user@100.53.55.144:/home/ec2-user"
+                        sh "ssh -o StrictHostKeyChecking=no ec2-user@100.53.55.144 ${shellCmd}"
+                    }
+                }
+            }
+        }
+    }
+}

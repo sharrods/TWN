@@ -2,7 +2,10 @@
 # Module 9 — AWS Services
 
 ## What I Built
-[Fill in after completing the module]
+Deployed Java Maven and Node.js applications to AWS EC2 
+using Jenkins CI/CD pipelines. Configured IAM users, groups 
+and policies via AWS CLI. Pushed Docker images to both 
+DockerHub and AWS ECR private registry.
 
 ---
 
@@ -16,54 +19,7 @@
 ## Lesson 3 — IAM: Users, Roles and Permissions
 
 ### Key Concepts
-- **User** — individual person with credentials
-- **Group** — collection of users sharing same permissions
-- **Role** — assigned to AWS services not people (e.g. EC2 assumes role to access S3)
-- **Policy** — JSON document defining actual permissions
 
-### What I Did
-- Created IAM user: Admin 
-- Created IAM group: [fill in]
-- Created IAM user: [fill in]
-- Created IAM role for EC2: [fill in]
-
-### Best Practices
-- Never use root account for daily tasks
-- Create admin IAM user instead
-- Apply least privilege — only give what is needed
-- Use roles for services, users for people
-
----
-
-## Lesson 4 — Regions & Availability Zones
-
-### Key Concepts
-- **Region** — geographic location (us-east-1, eu-west-1)
-- **Availability Zone** — isolated data center within a region
-- Each region has multiple AZs for redundancy
-- Choose region closest to your users for lower latency
-
-### My Region
-- Region: [fill in]
-- AZs used: [fill in]
-
----
-
-## Lesson 5 — VPC: Virtual Private Cloud
-
-### Key Concepts
-- **VPC** — your own isolated private network on AWS
-- **Subnet** — subdivision of VPC IP range
-- **Public Subnet** — has route to Internet Gateway, reachable from internet
-- **Private Subnet** — no internet gateway, not directly reachable from internet
-- **Internet Gateway** — allows public subnet to reach internet
-- **NAT Gateway** — allows private subnet to make outbound internet requests only
-- **Route Table** — rules for where network traffic is directed
-
-### VPC Setup
-- VPC CIDR: [fill in e.g. 10.0.0.0/16]
-- Public Subnet CIDR: [fill in]
-- Private Subnet CIDR: [fill in]
 
 ---
 
@@ -103,9 +59,8 @@
 - AMIID: ami-0c3389a4fa5bddaad
 - Region: N.Virginia 
 - VPC: 
-- Subnet: [fill in]
-- Security Group: [fill in]
-- Key Pair: [fill in]
+- Subnet: 10.2.0.0/24
+- Security Group: sg-0cd99f125750a5868
 
 ### Connect to EC2
 ssh -i ~/.ssh/<key-name>.pem ec2-user@<ec2-public-ip>
@@ -139,16 +94,62 @@ CONTAINER ID   IMAGE                   COMMAND                  CREATED         
 - Add credentials ssh agent in Jenkinsfile
 - ssh to AWS ec2 instance 
 
+## What I Built
+Deployed a Java Maven application to AWS EC2 using a complete 
+CI/CD pipeline. Jenkins automatically builds the Docker image, 
+pushes to DockerHub, SSHes into EC2, and runs the container.
+
+## Jenkins to EC2 Connection
+- Added EC2 private key (.pem) to Jenkins credentials
+- Jenkins uses SSH agent to connect to EC2
+- Jenkins runs docker commands remotely on EC2
 
 
+## Add docker compose 
+- sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
+- chmod +x /usr/local/bin/docker-compose
+- setup script to start docker compose
+- change docker compose file 
+    - image:postgres:15
+    - ports 5432:5432
 
-### What I Built
-CI/CD pipeline that deploys Docker container to EC2 after build
+
+## The Full Flow
+
+Jenkinsfile environment block
+    IMAGE_NAME = 'sharrods/demo-app:java-maven-2.0'
+        ↓
+shellCmd passes it to script
+    bash ./server-cmds.sh sharrods/demo-app:java-maven-2.0
+        ↓
+server-cmds.sh receives it as $1
+    export IMAGE=$1
+        ↓
+docker-compose uses it
+    image: ${IMAGE}
+
 
 ### Pipeline Flow
 ```
-Code Push → GitHub → Jenkins → Build JAR → Build Image → Push to ECR → Deploy to EC2
+
+peline Flow
+Code Push → GitHub Webhook → Jenkins Multibranch Pipeline
+    ↓
+Build JAR (Maven)
+    ↓
+Build Docker Image
+    ↓
+Push to DockerHub
+    ↓
+SCP docker-compose.yaml + server-cmds.sh to EC2
+    ↓
+SSH into EC2
+    ↓
+Run server-cmds.sh → docker-compose up
+    ↓
+java-maven-app + postgres containers running on EC2Code Push → GitHub → Jenkins → Build JAR → Build Image → Push to ECR → Deploy to EC2
 ```
+
 
 ### Jenkins to EC2 Connection
 - Added EC2 private key to Jenkins credentials
@@ -168,20 +169,293 @@ stage('deploy') {
 }
 ```
 
+### Dockerfile
+FROM amazoncorretto:17-alpine-jdk
+EXPOSE 8080
+COPY ./target/java-maven-app-*.jar /usr/app/
+WORKDIR /usr/app
+CMD java -jar java-maven-app-*.jar
+
+### docker-compose.yaml
+services:
+  java-maven-app:
+    image: ${IMAGE}
+    ports:
+      - 8080:8080
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_PASSWORD=password
+
+### server-cmds.sh
+#!/bin/bash
+export IMAGE=$1
+docker-compose -f docker-compose.yaml up --detach
+echo "success"
+
+### Jenkinsfile
+#!/usr/bin/env groovy
+
+pipeline {
+    agent any
+    tools {
+        maven 'maven-3.9'
+    }
+    environment {
+        IMAGE_NAME = 'sharrods/demo-app:java-maven-2.0'
+    }
+    stages {
+        stage('build app') {
+            steps {
+                script {
+                    echo 'building application jar...'
+                    sh 'mvn -f TWN-AWS/java-maven-app/pom.xml clean package'
+                }
+            }
+        }
+        stage('build image') {
+            steps {
+                script {
+                    echo 'building docker image...'
+                    withCredentials([usernamePassword(
+                        credentialsId: 'docker-hub-repo', 
+                        passwordVariable: 'PASS', 
+                        usernameVariable: 'USER')]) {
+                        sh "docker build -t ${IMAGE_NAME} -f TWN-AWS/java-maven-app/Dockerfile TWN-AWS/java-maven-app"
+                        sh 'echo $PASS | docker login -u $USER --password-stdin'
+                        sh "docker push ${IMAGE_NAME}"
+                    }
+                }
+            }
+        }
+        stage('deploy') {
+            steps {
+                script {
+                    echo 'deploying docker image to EC2...'
+                    def shellCmd = "bash ./server-cmds.sh ${IMAGE_NAME}"
+                    sshagent(['ec2-server-key']) {
+                        sh "scp TWN-AWS/java-maven-app/server-cmds.sh ec2-user@<ec2-ip>:/home/ec2-user"
+                        sh "scp TWN-AWS/java-maven-app/docker-compose.yaml ec2-user@<ec2-ip>:/home/ec2-user"
+                        sh "ssh -o StrictHostKeyChecking=no ec2-user@<ec2-ip> ${shellCmd}"
+                    }
+                }
+            }
+        }
+    }
+}
+
+## Jenkins to EC2 Connection
+- Added EC2 private key (.pem) to Jenkins credentials as ec2-server-key
+- Jenkins uses SSHagent plugin to authenticate to EC2
+- server-cmds.sh runs docker-compose on EC2 remotely
+- IMAGE_NAME passed as argument to server-cmds.sh via $1
+
+
+### Dynamic Version Increment
+- Maven reads current version from pom.xml
+- Increments patch number automatically
+- Sets IMAGE_NAME dynamically:
+  `env.IMAGE_NAME = "sharrods/demo-app:java-maven-$version-$BUILD_NUMBER"`
+- Version committed back to GitHub after build
+- Next build starts from incremented version
+
+
+### What Nana's Jenkinsfile Uses
+- Jenkins Shared Library from GitLab for reusable functions
+- `buildJar()` — builds the JAR
+- `buildImage()` — builds Docker image
+- `dockerLogin()` — logs into DockerHub
+- `dockerPush()` — pushes image to DockerHub
+- GitLab credentials for git operations
+
+
+---
+
+## Key Concepts
+- docker-compose runs multiple containers together as a stack
+- server-cmds.sh acts as the remote execution script on EC2
+- SCP copies files from Jenkins workspace to EC2
+- SSH executes commands remotely on EC2
+- IMAGE variable in docker-compose passed via export in shell script
+- docker-compose up --detach runs containers in background
+- Removing version: from docker-compose avoids obsolete warning
+- Jenkins workspace path != EC2 path, files must be SCP'd first
+
+
+## Issues and Resolutions
+
+### pom.xml not found
+- Error: `Non-readable POM TWN-AWS/java-maven-app/pom.xml`
+- Cause: `-f` flag needs full path to pom.xml file not just directory
+- Wrong:  `mvn -f TWN-AWS/java-maven-app clean package`
+- Fixed:  `mvn -f TWN-AWS/java-maven-app/pom.xml clean package`
+
+### docker build reading docker-compose.yaml as Dockerfile
+- Error: `unknown instruction: services:`
+- Cause: `-f` flag was pointing to docker-compose.yaml instead of Dockerfile
+- Wrong:  `docker build -t image -f TWN-AWS/java-maven-app/docker-compose.yaml`
+- Fixed:  `docker build -t image -f TWN-AWS/java-maven-app/Dockerfile`
+- Rule: `-f` always points to the Dockerfile specifically
+
+### Image not found on DockerHub
+- Error: `manifest for sharrods/demo-app:java-maven-1.0 not found`
+- Cause: Image tag referenced in docker-compose did not exist on DockerHub
+- Resolution: Updated tag to match an image that was actually pushed
+
+### docker build requires 1 argument
+- Error: `docker buildx build requires 1 argument`
+- Cause: docker-compose.yaml was being passed as extra argument to docker build
+- Resolution: Remove docker-compose.yaml from docker build command entirely
+
+### Obsolete version attribute in docker-compose
+- Error: `the attribute version is obsolete`
+- Cause: version: '3.8' is no longer needed in modern docker-compose
+- Resolution: Remove the version line from docker-compose.yaml entirely
+
+### node:10 build failure in React app
+- Error: `SyntaxError: Unexpected token` during npm build
+- Cause: node:10 too old for current React dependencies
+- Resolution: Updated Dockerfile base image to node:20
+  (confirmed fix from TWN community forum)
+
+### Port already allocated on EC2
+- Error: `Bind for 0.0.0.0:8080 failed: port is already allocated`
+- Cause: Previous container still running from last deployment
+- Resolution: Added stop/rm before docker run with || true flag
+
+
+
+
+
+
+
 ---
 
 ## Lesson 11 — ECR: Elastic Container Registry
 
+- Create ECR on AWS 
+- push sharrods/demo-app   java-maven-2.0   to ECR 
+- install awcli
+- configure awscli 
+- push local image to ECR
+- 
+
+
+aws configure
+# AWS Access Key ID: [from IAM user]
+# AWS Secret Access Key: [from IAM user]  
+# Default region: us-east-1
+# Default output format: json
+
+---
+
+## ECR — Elastic Container Registry
+
+### Authenticate Docker to ECR
+aws ecr get-login-password --region us-east-1 | docker login \
+  --username AWS \
+  --password-stdin account-id.dkr.ecr.us-east-1.amazonaws.com
+
+### Tag and Push Image to ECR
+# Tag existing image with ECR registry URL
+docker tag my-app:1.0 account-id.dkr.ecr.us-east-1.amazonaws.com/my-app:1.0
+
+# Push to ECR
+docker push account-id.dkr.ecr.us-east-1.amazonaws.com/my-app:1.0
+
+### ECR Image URI Format
+<account-id>.dkr.ecr.<region>.amazonaws.com/<repo-name>:<tag>
+
+---
+
+## IAM via AWS CLI
+
+### Groups
+# Create group
+aws iam create-group --group-name MyGroupCli
+
+# Add user to group
+aws iam add-user-to-group --user-name MyUserCli --group-name MyGroupCli
+
+# Get group details and members
+aws iam get-group --group-name MyGroupCli
+
+# Attach managed policy to group
+aws iam attach-group-policy --group-name MyGroupCli \
+  --policy-arn arn:aws:iam::aws:policy/AmazonEC2FullAccess
+
+# List policies attached to group
+aws iam list-attached-group-policies --group-name MyGroupCli
+
+### Users
+# Create user
+aws iam create-user --user-name MyUserCli
+
+# Get user details
+aws iam get-user --user-name MyUserCli
+
+# Create console login with password
+aws iam create-login-profile --user-name MyUserCli \
+  --password MyPassword! \
+  --password-reset-required
+
+### Custom Policies
+# Create policy from JSON file
+aws iam create-policy --policy-name changePwd \
+  --policy-document file://changePwdPolicy.json
+
+# Attach custom policy to group
+aws iam attach-group-policy --group-name MyGroupCli \
+  --policy-arn arn:aws:iam::account-id:policy/changePwd
+
+### changePwdPolicy.json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "iam:ChangePassword"
+            ],
+            "Resource": [
+                "arn:aws:iam::account-id:user/${aws:username}"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "iam:GetAccountPasswordPolicy"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+
+---
+
+## VPC and Security Groups via AWS CLI
+
+### Describe VPCs
+aws ec2 describe-vpcs
+
+### Describe Security Groups
+aws ec2 describe-security-groups
+
 ### Key Concepts
+- ECR = AWS managed private Docker registry
+- Authenticate to ECR before push using `get-login-password`
+- ECR image URI must include full registry domain
+- IAM users = people, IAM roles = services/machines
+- IAM policies define permissions — attach to groups not individual users
+- Custom policies written in JSON and created via CLI or console
+- Password policy must meet complexity requirements:
+  uppercase + number + symbol
+- Trailing comma in JSON policy = MalformedPolicyDocument error
 - **ECR** — AWS private Docker registry (like Nexus but managed by AWS)
 - Replaces DockerHub for production AWS deployments
 - Integrated with IAM — no separate credentials needed
 - Image URI format: `<account-id>.dkr.ecr.<region>.amazonaws.com/<repo>:<tag>`
 
-### ECR Setup
-- Repository name: [fill in]
-- Repository URI: [fill in — redact account ID]
-- Region: [fill in]
 
 ### Push Image to ECR
 # Authenticate
