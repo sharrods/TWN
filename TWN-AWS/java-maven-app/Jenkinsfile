@@ -22,9 +22,9 @@ pipeline {
                 script {
                     echo 'building docker image...'
                     withCredentials([usernamePassword(credentialsId: 'docker-hub-repo', passwordVariable: 'PASS', usernameVariable: 'USER' )]) {
-                        sh 'docker build -t sharrods/demo-app:java-maven-2.0 TWN-AWS/java-maven-app/docker-compose.yaml TWN-AWS/java-maven-app'
+                        sh "docker build -t ${IMAGE_NAME} -f TWN-AWS/java-maven-app/docker-compose.yaml TWN-AWS/java-maven-app"
                         sh 'echo $PASS | docker login -u $USER --password-stdin'
-                        sh 'docker push sharrods/edmo-app:java-maven-2.0'
+                        sh "docker push ${IMAGE_NAME}"
                     }
                 }
             }
