@@ -295,6 +295,27 @@ pipeline {
 - server-cmds.sh runs docker-compose on EC2 remotely
 - IMAGE_NAME passed as argument to server-cmds.sh via $1
 
+
+### Dynamic Version Increment
+- Maven reads current version from pom.xml
+- Increments patch number automatically
+- Sets IMAGE_NAME dynamically:
+  `env.IMAGE_NAME = "sharrods/demo-app:java-maven-$version-$BUILD_NUMBER"`
+- Version committed back to GitHub after build
+- Next build starts from incremented version
+
+
+### What Nana's Jenkinsfile Uses
+- Jenkins Shared Library from GitLab for reusable functions
+- `buildJar()` — builds the JAR
+- `buildImage()` — builds Docker image
+- `dockerLogin()` — logs into DockerHub
+- `dockerPush()` — pushes image to DockerHub
+- GitLab credentials for git operations
+
+
+---
+
 ## Key Concepts
 - docker-compose runs multiple containers together as a stack
 - server-cmds.sh acts as the remote execution script on EC2
