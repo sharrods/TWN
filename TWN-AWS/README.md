@@ -176,8 +176,25 @@ docker-compose uses it
 
 ### Pipeline Flow
 ```
-Code Push → GitHub → Jenkins → Build JAR → Build Image → Push to ECR → Deploy to EC2
+
+peline Flow
+Code Push → GitHub Webhook → Jenkins Multibranch Pipeline
+    ↓
+Build JAR (Maven)
+    ↓
+Build Docker Image
+    ↓
+Push to DockerHub
+    ↓
+SCP docker-compose.yaml + server-cmds.sh to EC2
+    ↓
+SSH into EC2
+    ↓
+Run server-cmds.sh → docker-compose up
+    ↓
+java-maven-app + postgres containers running on EC2Code Push → GitHub → Jenkins → Build JAR → Build Image → Push to ECR → Deploy to EC2
 ```
+
 
 ### Jenkins to EC2 Connection
 - Added EC2 private key to Jenkins credentials
@@ -196,6 +213,140 @@ stage('deploy') {
     }
 }
 ```
+
+### Dockerfile
+FROM amazoncorretto:17-alpine-jdk
+EXPOSE 8080
+COPY ./target/java-maven-app-*.jar /usr/app/
+WORKDIR /usr/app
+CMD java -jar java-maven-app-*.jar
+
+### docker-compose.yaml
+services:
+  java-maven-app:
+    image: ${IMAGE}
+    ports:
+      - 8080:8080
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_PASSWORD=password
+
+### server-cmds.sh
+#!/bin/bash
+export IMAGE=$1
+docker-compose -f docker-compose.yaml up --detach
+echo "success"
+
+### Jenkinsfile
+#!/usr/bin/env groovy
+
+pipeline {
+    agent any
+    tools {
+        maven 'maven-3.9'
+    }
+    environment {
+        IMAGE_NAME = 'sharrods/demo-app:java-maven-2.0'
+    }
+    stages {
+        stage('build app') {
+            steps {
+                script {
+                    echo 'building application jar...'
+                    sh 'mvn -f TWN-AWS/java-maven-app/pom.xml clean package'
+                }
+            }
+        }
+        stage('build image') {
+            steps {
+                script {
+                    echo 'building docker image...'
+                    withCredentials([usernamePassword(
+                        credentialsId: 'docker-hub-repo', 
+                        passwordVariable: 'PASS', 
+                        usernameVariable: 'USER')]) {
+                        sh "docker build -t ${IMAGE_NAME} -f TWN-AWS/java-maven-app/Dockerfile TWN-AWS/java-maven-app"
+                        sh 'echo $PASS | docker login -u $USER --password-stdin'
+                        sh "docker push ${IMAGE_NAME}"
+                    }
+                }
+            }
+        }
+        stage('deploy') {
+            steps {
+                script {
+                    echo 'deploying docker image to EC2...'
+                    def shellCmd = "bash ./server-cmds.sh ${IMAGE_NAME}"
+                    sshagent(['ec2-server-key']) {
+                        sh "scp TWN-AWS/java-maven-app/server-cmds.sh ec2-user@<ec2-ip>:/home/ec2-user"
+                        sh "scp TWN-AWS/java-maven-app/docker-compose.yaml ec2-user@<ec2-ip>:/home/ec2-user"
+                        sh "ssh -o StrictHostKeyChecking=no ec2-user@<ec2-ip> ${shellCmd}"
+                    }
+                }
+            }
+        }
+    }
+}
+
+## Jenkins to EC2 Connection
+- Added EC2 private key (.pem) to Jenkins credentials as ec2-server-key
+- Jenkins uses SSHagent plugin to authenticate to EC2
+- server-cmds.sh runs docker-compose on EC2 remotely
+- IMAGE_NAME passed as argument to server-cmds.sh via $1
+
+## Key Concepts
+- docker-compose runs multiple containers together as a stack
+- server-cmds.sh acts as the remote execution script on EC2
+- SCP copies files from Jenkins workspace to EC2
+- SSH executes commands remotely on EC2
+- IMAGE variable in docker-compose passed via export in shell script
+- docker-compose up --detach runs containers in background
+- Removing version: from docker-compose avoids obsolete warning
+- Jenkins workspace path != EC2 path, files must be SCP'd first
+
+
+## Issues and Resolutions
+
+### pom.xml not found
+- Error: `Non-readable POM TWN-AWS/java-maven-app/pom.xml`
+- Cause: `-f` flag needs full path to pom.xml file not just directory
+- Wrong:  `mvn -f TWN-AWS/java-maven-app clean package`
+- Fixed:  `mvn -f TWN-AWS/java-maven-app/pom.xml clean package`
+
+### docker build reading docker-compose.yaml as Dockerfile
+- Error: `unknown instruction: services:`
+- Cause: `-f` flag was pointing to docker-compose.yaml instead of Dockerfile
+- Wrong:  `docker build -t image -f TWN-AWS/java-maven-app/docker-compose.yaml`
+- Fixed:  `docker build -t image -f TWN-AWS/java-maven-app/Dockerfile`
+- Rule: `-f` always points to the Dockerfile specifically
+
+### Image not found on DockerHub
+- Error: `manifest for sharrods/demo-app:java-maven-1.0 not found`
+- Cause: Image tag referenced in docker-compose did not exist on DockerHub
+- Resolution: Updated tag to match an image that was actually pushed
+
+### docker build requires 1 argument
+- Error: `docker buildx build requires 1 argument`
+- Cause: docker-compose.yaml was being passed as extra argument to docker build
+- Resolution: Remove docker-compose.yaml from docker build command entirely
+
+### Obsolete version attribute in docker-compose
+- Error: `the attribute version is obsolete`
+- Cause: version: '3.8' is no longer needed in modern docker-compose
+- Resolution: Remove the version line from docker-compose.yaml entirely
+
+### node:10 build failure in React app
+- Error: `SyntaxError: Unexpected token` during npm build
+- Cause: node:10 too old for current React dependencies
+- Resolution: Updated Dockerfile base image to node:20
+  (confirmed fix from TWN community forum)
+
+### Port already allocated on EC2
+- Error: `Bind for 0.0.0.0:8080 failed: port is already allocated`
+- Cause: Previous container still running from last deployment
+- Resolution: Added stop/rm before docker run with || true flag
+
 
 
 
