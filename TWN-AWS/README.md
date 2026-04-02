@@ -153,7 +153,25 @@ pushes to DockerHub, SSHes into EC2, and runs the container.
 ## Add docker compose 
 - sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
 - chmod +x /usr/local/bin/docker-compose
--  
+- setup script to start docker compose
+- change docker compose file 
+    - image:postgres:15
+    - ports 5432:5432
+
+
+## The Full Flow
+
+Jenkinsfile environment block
+    IMAGE_NAME = 'sharrods/demo-app:java-maven-2.0'
+        ↓
+shellCmd passes it to script
+    bash ./server-cmds.sh sharrods/demo-app:java-maven-2.0
+        ↓
+server-cmds.sh receives it as $1
+    export IMAGE=$1
+        ↓
+docker-compose uses it
+    image: ${IMAGE}
 
 
 ### Pipeline Flow
@@ -178,6 +196,11 @@ stage('deploy') {
     }
 }
 ```
+
+
+
+
+
 
 ---
 
