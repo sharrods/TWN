@@ -1,4 +1,5 @@
 !#/usr/bin/env bash
 
-docker-compose -f TWN-AWS/java-maven-app/docker-compose.yaml up --detach
+export IMAGE=$1
+docker-compose -f docker-compose.yaml up --detach
 echo "Success"

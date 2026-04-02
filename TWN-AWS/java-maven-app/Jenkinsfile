@@ -6,7 +6,7 @@ pipeline {
         maven 'maven-3.9'
     }
     environment {
-        IMAGE_NAME = 'sharrods/demo-app:1.0'
+        IMAGE_NAME = 'sharrods/demo-app:java-maven-2.0'
     }
     stages {
         stage('build app') {
@@ -17,11 +17,25 @@ pipeline {
                 }
             }
         }
+        stage('build image') {
+            steps {
+                script {
+                    echo 'building docker image...'
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-repo', passwordVariable: 'PASS', usernameVariable: 'USER' )]) {
+                        sh 'docker build -t sharrods/demo-app:java-maven-2.0 TWN-AWS/java-maven-app/docker-compose.yaml TWN-AWS/java-maven-app'
+                        sh 'echo $PASS | docker login -u $USER --password-stdin'
+                        sh 'docker push sharrods/edmo-app:java-maven-2.0'
+                    }
+                }
+            }
+        }
         stage('deploy') {
             steps {
                 script {
                     echo 'deploying docker image to EC2...'
-                    def shellCmd =  "bash ./server-cmds.sh"
+
+                    def shellCmd =  "bash ./server-cmds.sh ${IMAGE_NAME}"
+
                     sshagent(['ec2-server-key']) {
                         sh "scp TWN-AWS/java-maven-app/server-cmds.sh ec2-user@100.53.55.144:/home/ec2-user"
                         sh "scp TWN-AWS/java-maven-app/docker-compose.yaml ec2-user@100.53.55.144:/home/ec2-user"
