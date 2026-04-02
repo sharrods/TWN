@@ -2,7 +2,10 @@
 # Module 9 — AWS Services
 
 ## What I Built
-[Fill in after completing the module]
+Deployed Java Maven and Node.js applications to AWS EC2 
+using Jenkins CI/CD pipelines. Configured IAM users, groups 
+and policies via AWS CLI. Pushed Docker images to both 
+DockerHub and AWS ECR private registry.
 
 ---
 
@@ -16,54 +19,7 @@
 ## Lesson 3 — IAM: Users, Roles and Permissions
 
 ### Key Concepts
-- **User** — individual person with credentials
-- **Group** — collection of users sharing same permissions
-- **Role** — assigned to AWS services not people (e.g. EC2 assumes role to access S3)
-- **Policy** — JSON document defining actual permissions
 
-### What I Did
-- Created IAM user: Admin 
-- Created IAM group: [fill in]
-- Created IAM user: [fill in]
-- Created IAM role for EC2: [fill in]
-
-### Best Practices
-- Never use root account for daily tasks
-- Create admin IAM user instead
-- Apply least privilege — only give what is needed
-- Use roles for services, users for people
-
----
-
-## Lesson 4 — Regions & Availability Zones
-
-### Key Concepts
-- **Region** — geographic location (us-east-1, eu-west-1)
-- **Availability Zone** — isolated data center within a region
-- Each region has multiple AZs for redundancy
-- Choose region closest to your users for lower latency
-
-### My Region
-- Region: [fill in]
-- AZs used: [fill in]
-
----
-
-## Lesson 5 — VPC: Virtual Private Cloud
-
-### Key Concepts
-- **VPC** — your own isolated private network on AWS
-- **Subnet** — subdivision of VPC IP range
-- **Public Subnet** — has route to Internet Gateway, reachable from internet
-- **Private Subnet** — no internet gateway, not directly reachable from internet
-- **Internet Gateway** — allows public subnet to reach internet
-- **NAT Gateway** — allows private subnet to make outbound internet requests only
-- **Route Table** — rules for where network traffic is directed
-
-### VPC Setup
-- VPC CIDR: [fill in e.g. 10.0.0.0/16]
-- Public Subnet CIDR: [fill in]
-- Private Subnet CIDR: [fill in]
 
 ---
 
@@ -103,9 +59,8 @@
 - AMIID: ami-0c3389a4fa5bddaad
 - Region: N.Virginia 
 - VPC: 
-- Subnet: [fill in]
-- Security Group: [fill in]
-- Key Pair: [fill in]
+- Subnet: 10.2.0.0/24
+- Security Group: sg-0cd99f125750a5868
 
 ### Connect to EC2
 ssh -i ~/.ssh/<key-name>.pem ec2-user@<ec2-public-ip>
@@ -378,16 +333,129 @@ pipeline {
 
 ## Lesson 11 — ECR: Elastic Container Registry
 
+- Create ECR on AWS 
+- push sharrods/demo-app   java-maven-2.0   to ECR 
+- install awcli
+- configure awscli 
+- push local image to ECR
+- 
+
+
+aws configure
+# AWS Access Key ID: [from IAM user]
+# AWS Secret Access Key: [from IAM user]  
+# Default region: us-east-1
+# Default output format: json
+
+---
+
+## ECR — Elastic Container Registry
+
+### Authenticate Docker to ECR
+aws ecr get-login-password --region us-east-1 | docker login \
+  --username AWS \
+  --password-stdin account-id.dkr.ecr.us-east-1.amazonaws.com
+
+### Tag and Push Image to ECR
+# Tag existing image with ECR registry URL
+docker tag my-app:1.0 account-id.dkr.ecr.us-east-1.amazonaws.com/my-app:1.0
+
+# Push to ECR
+docker push account-id.dkr.ecr.us-east-1.amazonaws.com/my-app:1.0
+
+### ECR Image URI Format
+<account-id>.dkr.ecr.<region>.amazonaws.com/<repo-name>:<tag>
+
+---
+
+## IAM via AWS CLI
+
+### Groups
+# Create group
+aws iam create-group --group-name MyGroupCli
+
+# Add user to group
+aws iam add-user-to-group --user-name MyUserCli --group-name MyGroupCli
+
+# Get group details and members
+aws iam get-group --group-name MyGroupCli
+
+# Attach managed policy to group
+aws iam attach-group-policy --group-name MyGroupCli \
+  --policy-arn arn:aws:iam::aws:policy/AmazonEC2FullAccess
+
+# List policies attached to group
+aws iam list-attached-group-policies --group-name MyGroupCli
+
+### Users
+# Create user
+aws iam create-user --user-name MyUserCli
+
+# Get user details
+aws iam get-user --user-name MyUserCli
+
+# Create console login with password
+aws iam create-login-profile --user-name MyUserCli \
+  --password MyPassword! \
+  --password-reset-required
+
+### Custom Policies
+# Create policy from JSON file
+aws iam create-policy --policy-name changePwd \
+  --policy-document file://changePwdPolicy.json
+
+# Attach custom policy to group
+aws iam attach-group-policy --group-name MyGroupCli \
+  --policy-arn arn:aws:iam::account-id:policy/changePwd
+
+### changePwdPolicy.json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "iam:ChangePassword"
+            ],
+            "Resource": [
+                "arn:aws:iam::account-id:user/${aws:username}"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "iam:GetAccountPasswordPolicy"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+
+---
+
+## VPC and Security Groups via AWS CLI
+
+### Describe VPCs
+aws ec2 describe-vpcs
+
+### Describe Security Groups
+aws ec2 describe-security-groups
+
 ### Key Concepts
+- ECR = AWS managed private Docker registry
+- Authenticate to ECR before push using `get-login-password`
+- ECR image URI must include full registry domain
+- IAM users = people, IAM roles = services/machines
+- IAM policies define permissions — attach to groups not individual users
+- Custom policies written in JSON and created via CLI or console
+- Password policy must meet complexity requirements:
+  uppercase + number + symbol
+- Trailing comma in JSON policy = MalformedPolicyDocument error
 - **ECR** — AWS private Docker registry (like Nexus but managed by AWS)
 - Replaces DockerHub for production AWS deployments
 - Integrated with IAM — no separate credentials needed
 - Image URI format: `<account-id>.dkr.ecr.<region>.amazonaws.com/<repo>:<tag>`
 
-### ECR Setup
-- Repository name: [fill in]
-- Repository URI: [fill in — redact account ID]
-- Region: [fill in]
 
 ### Push Image to ECR
 # Authenticate
