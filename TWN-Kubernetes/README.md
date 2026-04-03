@@ -282,10 +282,281 @@ Admin creates PV (actual storage)
 
 ---
 
-## Lesson 12
+### Lesson 12
 [fill in as you go]
 
 ---
+- add mosquitto config-map 
+- volumes added and mounted inside container
+- config map and secret are volume types 
+	- they are local volume type in kubernetes
+
+
+### Lesson 13
+- Statefule set: databases
+- Stateless set: dont keep record; each request is new 
+- sometimes they forward to a statefule application 
+- Helm Charts and why they are used. 
+
+### Build Helm Chart
+- brew install helm
+- deploy mongodb using helm
+- 3 replicas using statefule set
+- configure data persistence with linode's cloud storage 
+- deploy UI client Mongo-Express
+- Configure nginx-ingress
+- Create Kubernetes on Linode 
+- Downloda test-kubeconfig.yaml
+    - Make into a environmet variable
+- chomod 400 test-kubeconfig.yaml
+- export KUBECONFIG=test-kubeconfig.yaml
+    - ❯ kb get node
+    NAME                            STATUS   ROLES    AGE   VERSION
+    lke587503-860320-16aaba4e0000   Ready    <none>   14m   v1.35.1
+    lke587503-860320-3786dba10000   Ready    <none>   15m   v1.35.1
+- deploy mongdb stateful set
+- helm repo add bitnami https://charts.bitnami.com/bitnami
+"bitnami" has been added to your repositories
+- ❯ helm repo update
+Hang tight while we grab the latest from your chart repositories...
+...Successfully got an update from the "bitnami" chart repository
+Update Complete. ⎈Happy Helming!⎈
+ 
+❯ helm search repo bitnami/mongodb
+NAME                   	CHART VERSION	APP VERSION	DESCRIPTION
+bitnami/mongodb        	18.6.21      	8.2.6      	MongoDB(R) is a relational open source NoSQL da...
+bitnami/mongodb-sharded	9.4.12       	8.0.13     	MongoDB(R) is an open source NoSQL database tha...
+
+- Install chart
+    - ❯ helm install mongodb --values helm-mongodb.yaml bitnami/mongodb
+- Overrides
+    - 
+- deploy 
+   - ❯ helm install mongodb --values helm-mongodb.yaml bitnami/mongodb
+NAME: mongodb
+LAST DEPLOYED: Fri Apr  3 11:44:03 2026
+NAMESPACE: default
+STATUS: deployed
+REVISION: 1
+DESCRIPTION: Install complete
+TEST SUITE: None
+NOTES:
+CHART NAME: mongodb
+CHART VERSION: 18.6.21
+APP VERSION: 8.2.6
+
+⚠ WARNING: Since August 28th, 2025, only a limited subset of images/charts are available for free.
+    Subscribe to Bitnami Secure Images to receive continued support and security updates.
+    More info at https://bitnami.com and https://github.com/bitnami/containers/issues/83267
+
+** Please be patient while the chart is being deployed **
+
+MongoDB&reg; can be accessed on the following DNS name(s) and ports from within your cluster:
+
+    mongodb-0.mongodb-headless.default.svc.cluster.local:27017
+    mongodb-1.mongodb-headless.default.svc.cluster.local:27017
+    mongodb-2.mongodb-headless.default.svc.cluster.local:27017
+
+
+❯ kba
+NAME                    READY   STATUS    RESTARTS   AGE
+pod/mongodb-0           1/1     Running   0          2m
+pod/mongodb-1           1/1     Running   0          77s
+pod/mongodb-2           0/1     Running   0          32s
+pod/mongodb-arbiter-0   1/1     Running   0          2m
+
+NAME                               TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)     AGE
+service/kubernetes                 ClusterIP   10.128.0.1   <none>        443/TCP     38m
+service/mongodb-arbiter-headless   ClusterIP   None         <none>        27017/TCP   2m
+service/mongodb-headless           ClusterIP   None         <none>        27017/TCP   2m
+
+NAME                               READY   AGE
+statefulset.apps/mongodb           2/3     2m
+statefulset.apps/mongodb-arbiter   1/1     2m
+
+
+region		Attached To	Encryption	
+pvc-26460eff71a947e9
+Active
+US, Atlanta, GA	10 GB	
+lke587503-860320-16aaba4e0000
+Not Encrypted	
+pvc-3610ad75a2f64b27
+Active
+US, Atlanta, GA	10 GB	
+lke587503-860320-16aaba4e0000
+Not Encrypted	
+pvc-d345dae4f4214ae0
+Active
+US, Atlanta, GA	10 GB	
+lke587503-860320-3786dba10000
+Not Encrypted	
+
+- Deploy mongoexpress 
+- ❯ kbf helm-mongo-express.yaml
+deployment.apps/mongo-express created
+service/mongo-express-service created
+❯ kbp
+NAME                            READY   STATUS              RESTARTS   AGE
+mongo-express-fd8bc9dcf-7cgfm   0/1     ContainerCreating   0          5s
+mongodb-0                       1/1     Running             0          9m32s
+mongodb-1                       1/1     Running             0          8m49s
+mongodb-2                       1/1     Running             0          8m4s
+mongodb-arbiter-0               1/1     Running             0          9m32s
+❯ kbl mongo-express-5747d566b9-9n2vx
+error: error from server (NotFound): pods "mongo-express-5747d566b9-9n2vx" not found in namespace "default"
+❯ kbl mongo-express-fd8bc9dcf-7cgfm
+Waiting for mongodb-0.mongodb-headless:27017...
+No custom config.js found, loading config.default.js
+Welcome to mongo-express 1.0.2
+------------------------
+
+
+Mongo Express server listening at http://0.0.0.0:8081
+Server is open to allow connections from anyone (0.0.0.0)
+basicAuth credentials are "admin:pass", it is recommended you change this in your config.js!
+
+- install nginx-ingress controller
+    - ❯ helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+    "ingress-nginx" has been added to your repositories
+
+    - helm install nginx-ingress ingress-nginx/ingress-nginx  --set controller.publishService.enabled=true
+        NAME: nginx-ingress
+	LAST DEPLOYED: Fri Apr  3 11:59:01 2026
+	NAMESPACE: default
+	STATUS: deployed
+	REVISION: 1
+	DESCRIPTION: Install complete
+	TEST SUITE: None
+	NOTES:
+	The ingress-nginx controller has been installed.
+
+  
+- create ingress 
+❯ kbf helm-ingress.yaml
+Warning: annotation "kubernetes.io/ingress.class" is deprecated, please use 'spec.ingressClassName' instead
+ingress.networking.k8s.io/mongo-express created
+❯ kb get ingress
+NAME            CLASS    HOSTS                                      ADDRESS   PORTS   AGE
+mongo-express   <none>   139-144-164-154.ip.linodeusercontent.com             80      9s
+
+- Scale down replicas to see if persistence is good when we spin back up
+    - ❯ kb scale --replicas=0 statefulset/mongodb
+        statefulset.apps/mongodb scaled
+	- mongodb-2                                                 1/1     Terminating 
+	- mongodb-1                                                 1/1     Terminating
+	- mongodb-0                                                 1/1     Terminating 
+
+❯ helm ls
+NAME         	NAMESPACE	REVISION	UPDATED                             	STATUS  	CHART               	APP VERSION
+mongodb      	default  	1       	2026-04-03 11:44:03.42698 -0600 MDT 	deployed	mongodb-18.6.21     	8.2.6
+nginx-ingress	default  	1       	2026-04-03 11:59:01.727698 -0600 MDT	deployed	ingress-nginx-4.15.1	1.15.1
+
+
+- Add them back
+- kb scale --replicas=3 statefulset/mongodb
+statefulset.apps/mongodb scaled
+	- mongodb-0                                                 1/1     Running   0          2m8s
+	- mongodb-1                                                 1/1     Running   0          102s
+	- mongodb-2                                                 1/1     Running   0   
+
+
+---
+## Deploying images in Kubernetes from private repository
+
+- create docker config secret
+- configure deployment for my-app application 
+- ❯ kbf deploying-images-from-private-docker-repo/my-app-deployment.yaml
+deployment.apps/my-app created
+
+
+
+
+### Deploying micro services
+- ❯ export KUBECONFIG=/Users/sharrods/Documents/Techworld-with-nana/TWN-Kubernetes/helm-chart-microservices/online-shop-microservices-kubeconfig.yaml
+- Create Kubernetes Cluster 
+- ❯ kb get node
+NAME                            STATUS   ROLES    AGE     VERSION
+lke587532-860363-0d1ea1ad0000   Ready    <none>   3m10s   v1.35.1
+lke587532-860363-18eb431f0000   Ready    <none>   2m57s   v1.35.1
+lke587532-860363-3cabf9f50000   Ready    <none>   3m6s    v1.35.1
+
+- Create namespace microservices and deploy
+❯ kb create ns microservices
+namespace/microservices created
+❯ kbf config.yaml -n microservices
+deployment.apps/emailservice created
+service/emailservice created
+deployment.apps/recommendationservice created
+service/recommendationservice created
+deployment.apps/productcatalogservice created
+service/productcatalogservice created
+deployment.apps/paymentservice created
+service/paymentservice created
+deployment.apps/currencyservice created
+service/currencyservice created
+deployment.apps/shippingservice created
+service/shippingservice created
+deployment.apps/adservice created
+service/adservice created
+deployment.apps/cartservice created
+service/cartservice created
+deployment.apps/redis-cart created
+service/redis-cart created
+deployment.apps/checkoutservice created
+service/checkoutservice created
+deployment.apps/frontend created
+service/frontend created
+
+- Get microservices and service
+❯ kbp -n microservices
+NAME                                     READY   STATUS    RESTARTS      AGE
+adservice-66ff9975bc-2hsxg               1/1     Running   0             81s
+adservice-66ff9975bc-ttxbj               1/1     Running   0             81s
+cartservice-7b846c5895-9pwnm             1/1     Running   0             80s
+cartservice-7b846c5895-g7zcr             1/1     Running   0             80s
+checkoutservice-7f56b944b8-mrcdx         1/1     Running   0             80s
+checkoutservice-7f56b944b8-v2wjd         1/1     Running   0             80s
+currencyservice-5b4b4c9bd4-4hrtv         1/1     Running   0             81s
+currencyservice-5b4b4c9bd4-mtx4s         1/1     Running   0             81s
+emailservice-5d9876976c-ftqlg            0/1     Running   1 (31s ago)   83s
+frontend-5f8d9468f4-l6788                1/1     Running   0             79s
+frontend-5f8d9468f4-nck5f                1/1     Running   0             79s
+paymentservice-696f47b5f6-4h29v          1/1     Running   0             81s
+paymentservice-696f47b5f6-jj9js          1/1     Running   0             81s
+productcatalogservice-594bc59f78-gm5b2   1/1     Running   0             82s
+productcatalogservice-594bc59f78-m74jd   1/1     Running   0             82s
+recommendationservice-f86c5884b-4l9kx    1/1     Running   0             82s
+recommendationservice-f86c5884b-5f2z4    1/1     Running   0             82s
+redis-cart-d45dfffc4-btpsv               1/1     Running   0             80s
+redis-cart-d45dfffc4-pvcqg               1/1     Running   0             80s
+shippingservice-6cb96df4c8-58ddz         1/1     Running   0             81s
+shippingservice-6cb96df4c8-8dh7t         1/1     Running   0             81s
+❯ kb svc -n microservices
+error: unknown command "svc" for "kubectl"
+
+Did you mean this?
+	set
+❯ kb get svc -n microservices
+NAME                    TYPE           CLUSTER-IP       EXTERNAL-IP       PORT(S)        AGE
+adservice               ClusterIP      10.128.244.3     <none>            9555/TCP       117s
+cartservice             ClusterIP      10.128.59.135    <none>            7070/TCP       117s
+checkoutservice         ClusterIP      10.128.119.15    <none>            5050/TCP       116s
+currencyservice         ClusterIP      10.128.91.247    <none>            7000/TCP       118s
+emailservice            ClusterIP      10.128.241.190   <none>            5000/TCP       119s
+frontend                LoadBalancer   10.128.102.128   139.144.164.154   80:30457/TCP   116s
+paymentservice          ClusterIP      10.128.118.133   <none>            50051/TCP      118s
+productcatalogservice   ClusterIP      10.128.20.30     <none>            3550/TCP       119s
+recommendationservice   ClusterIP      10.128.30.168    <none>            8080/TCP       119s
+redis-cart              ClusterIP      10.128.221.60    <none>            6379/TCP       117s
+shippingservice         ClusterIP      10.128.80.97     <none>            50051/TCP      118s
+
+
+
+
+
+
+
 
 
 
