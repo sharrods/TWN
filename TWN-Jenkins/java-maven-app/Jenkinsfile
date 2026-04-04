@@ -1,5 +1,5 @@
 pipeline {
-    agent any 
+    agent any
     tools {
         maven 'maven-3.9'
     }
@@ -12,7 +12,7 @@ pipeline {
                     -DnewVersion=\\\${parsedVersion.majorVersion}.\\\${parsedVersion.minorVersion}.\\\${parsedVersion.nextIncrementalVersion} versions:commit'
                     def matcher = readFile('TWN-Jenkins/java-maven-app/pom.xml') =~ '<version>(.+)</version>'
                     def version = matcher[0][1]
-                    env.IMAGE_NAME = "$version-$BUILD_NUMBER" 
+                    env.IMAGE_NAME = "$version-$BUILD_NUMBER"
                 }
             }
         }
@@ -35,7 +35,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage("deploy") {
             steps {
                 script {
@@ -49,16 +49,18 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'github-creds', passwordVariable: 'PASS', usernameVariable: 'USER' )]) {
                     sh 'git config --global user.email "jenkins@example.com"'
                     sh 'git config --global user.name "jenkins"'
-                    
+
                     sh 'git status'
                     sh 'git branch'
                     sh 'git config --list'
-                    
+
                     sh "git remote set-url origin https://${USER}:${PASS}@github.com/sharrods/TWN.git"
+                    sh 'git checkout feature/payment' 
+                    sh 'git pull origin feature/payment'
                     sh 'git add .'
                     sh "git commit -m 'ci: version bump ${IMAGE_NAME}'"
-                    sh 'git push origin HEAD:feature/payment'                
-                    } 
+                    sh 'git push origin HEAD:feature/payment'
+                    }
                 }
             }
         }
