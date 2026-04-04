@@ -552,7 +552,77 @@ redis-cart              ClusterIP      10.128.221.60    <none>            6379/T
 shippingservice         ClusterIP      10.128.80.97     <none>            50051/TCP      118s
 
 
+### Create shared helmchart
+- helm create microservice
+- change template files; Use {{ .Values.appName }}
+- create helm service microservice
+- helm install email service
+    - ❯ helm ls
+NAME        	NAMESPACE	REVISION	UPDATED                             	STATUS  	CHART             	APP VERSION
+emailservice	default  	1       	2026-04-03 17:09:13.910609 -0600 MDT	deployed	microservice-0.1.0	1.16.0
 
+❯ kbp
+NAME                            READY   STATUS    RESTARTS   AGE
+emailservice-778b6cfbdd-bwhwh   1/1     Running   0          5m25s
+emailservice-778b6cfbdd-n84r9   1/1     Running   0          5m25s
+
+### Install all 
+- ❯ kbp
+NAME                                     READY   STATUS    RESTARTS   AGE
+adservice-5f8b8889c9-kk8fd               1/1     Running   0          9s
+adservice-5f8b8889c9-rw5w9               1/1     Running   0          9s
+cartservice-548cc667f7-bnjjg             1/1     Running   0          14s
+cartservice-548cc667f7-zsgnz             1/1     Running   0          14s
+checkoutservice-d5cdb7ffd-qj9cp          1/1     Running   0          7s
+checkoutservice-d5cdb7ffd-w5mnm          1/1     Running   0          7s
+currencyservice-dbb475f87-gtln8          1/1     Running   0          13s
+currencyservice-dbb475f87-qkzs9          1/1     Running   0          13s
+emailservice-778b6cfbdd-bwhwh            1/1     Running   0          46m
+emailservice-778b6cfbdd-n84r9            1/1     Running   0          46m
+frontend-7c9459ffb6-cwjgt                1/1     Running   0          6s
+frontend-7c9459ffb6-z8x9t                1/1     Running   0          6s
+paymentservice-85566bc778-h6mdv          1/1     Running   0          12s
+paymentservice-85566bc778-z96jq          1/1     Running   0          12s
+productcatalogservice-549b86c956-cwdvt   1/1     Running   0          11s
+productcatalogservice-549b86c956-dnqld   1/1     Running   0          11s
+recommendationservice-6b74f8cb9f-p455k   1/1     Running   0          24m
+recommendationservice-6b74f8cb9f-vm9rk   1/1     Running   0          24m
+redis-cart-9795bb64c-6556r               1/1     Running   0          4m9s
+redis-cart-9795bb64c-zxr2k               1/1     Running   0          4m9s
+shippingservice-56c958dbf6-b5jtf         1/1     Running   0          10s
+shippingservice-56c958dbf6-hsbcw         1/1     Running   0          10s
+
+Uninstall everything. 
+❯ ./uninstall.sh
+release "rediscart" uninstalled
+release "emailservice" uninstalled
+release "cartservice" uninstalled
+release "currencyservice" uninstalled
+release "paymentservice" uninstalled
+release "recommendationservice" uninstalled
+release "productcatalogservice" uninstalled
+release "shippingservice" uninstalled
+release "adservice" uninstalled
+release "checkoutservice" uninstalled
+release "frontendservice" uninstalled
+
+- Create helm files 
+- install brew install helmfile
+- helmfile sync  #Will install all 
+- helmfile destroy  #Will remove all
+DELETED RELEASES:
+NAME                    NAMESPACE   DURATION
+shippingservice                           1s
+frontendservice                           1s
+rediscart                                 1s
+checkoutservice                           1s
+productcatalogservice                     1s
+paymentservice                            1s
+emailservice                              1s
+cartservice                               1s
+currencyservice                           1s
+recommendationservice                     1s
+adservice                                 1s
 
 
 
