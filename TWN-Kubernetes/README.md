@@ -624,8 +624,167 @@ currencyservice                           1s
 recommendationservice                     1s
 adservice                                 1s
 
+### Lesson 12 — ConfigMap & Secret as Volume Types
+- configmap and secret can be mounted as files inside container
+- not just env variables — can be actual config files
+- use case: mosquitto message broker needs config file not env var
+- mounted as local volume type inside the pod
+- add volume to spec and volumeMount to container
 
+### Lesson 13 — StatefulSet
+- StatefulSet = for databases and stateful apps
+- Stateless = dont keep state, each request is brand new
+- Stateless apps sometimes forward to stateful apps
+- StatefulSet pods have stable identity — mongodb-0, mongodb-1, mongodb-2
+- each pod gets its own persistent volume
+- pods start and stop in order — not random like Deployment
 
+### Lesson 14 — Managed Kubernetes (Helm + Linode)
+- Created K8s cluster on Linode (LKE)
+- downloaded kubeconfig and set as environment variable
+```bash
+chmod 400 test-kubeconfig.yaml
+export KUBECONFIG=test-kubeconfig.yaml
+kb get node
+NAME                            STATUS   ROLES    AGE   VERSION
+lke587503-860320-16aaba4e0000   Ready    <none>   14m   v1.35.1
+lke587503-860320-3786dba10000   Ready    <none>   15m   v1.35.1
+```
+
+### Lesson 15-16 — Helm: Package Manager for Kubernetes
+- Helm = package manager for K8s like brew for Mac
+- Helm Chart = bundle of K8s YAML files packaged together
+- instead of managing 10 separate YAML files use one chart
+- can override default values with your own values.yaml
+
+### Install and Setup
+```bash
+brew install helm
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
+helm search repo bitnami/mongodb
+```
+
+### Deploy MongoDB with Helm
+```bash
+helm install mongodb --values helm-mongodb.yaml bitnami/mongodb
+```
+- 3 replicas using StatefulSet
+- persistent storage via Linode volumes (PVC auto created)
+- 3 x 10GB volumes created automatically
+
+### Deploy Mongo Express
+```bash
+kbf helm-mongo-express.yaml
+```
+
+### Install Nginx Ingress Controller
+```bash
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm install nginx-ingress ingress-nginx/ingress-nginx \
+  --set controller.publishService.enabled=true
+```
+
+### Test Persistence
+```bash
+# scale down to 0
+kb scale --replicas=0 statefulset/mongodb
+
+# scale back up
+kb scale --replicas=3 statefulset/mongodb
+# data was still there — persistence confirmed ✅
+```
+
+### Helm Commands
+```bash
+helm ls                    # list installed releases
+helm install <name> <chart>
+helm uninstall <name>
+helm upgrade <name> <chart>
+```
+
+### Lesson 17 — Deploy from Private Docker Registry
+- create docker config secret in K8s
+- configure deployment to use imagePullSecrets
+- K8s uses the secret to authenticate to private registry when pulling image
+```bash
+kbf deploying-images-from-private-docker-repo/my-app-deployment.yaml
+deployment.apps/my-app created
+```
+
+### Lessons 21-22 — Microservices Deployment
+- created new K8s cluster on Linode for microservices
+- created namespace microservices
+- deployed 11 services from single config.yaml
+```bash
+export KUBECONFIG=/Users/sharrods/Documents/Techworld-with-nana/TWN-Kubernetes/helm-chart-microservices/online-shop-microservices-kubeconfig.yaml
+
+kb create ns microservices
+kbf config.yaml -n microservices
+
+kb get svc -n microservices
+# frontend has external IP — accessible from browser
+# all others are ClusterIP — internal only
+```
+
+### Lessons 23-24 — Helm Chart for Microservices + Helmfile
+- created shared helm chart called microservice
+- one chart used for all 11 services
+- each service has its own values file e.g. email-service-values.yaml
+- helmfile manages deploying all services at once
+```bash
+brew install helmfile
+
+helmfile sync     # install all services
+helmfile destroy  # remove all services
+```
+
+### Uninstall Script
+```bash
+./uninstall.sh
+# uninstalls all helm releases at once
+```
+
+---
+
+## Issues and Resolutions
+
+### helm repo add missing name argument
+- Error: `helm repo add requires 2 arguments`
+- Cause: forgot to include repo name before URL
+- Wrong: `helm repo add https://github.com/bitnami/...`
+- Fixed: `helm repo add bitnami https://charts.bitnami.com/bitnami`
+
+### helm install env var name required value
+- Error: `containers[0].env[0].name: Required value`
+- Cause: Helm template used `.key` but values file used `name`
+- Wrong in template: `- name: {{ .key }}`
+- Fixed in template: `- name: {{ .name }}`
+
+### cannot reuse helm release name
+- Error: `cannot reuse a name that is still in use`
+- Cause: failed install left partial release behind
+- Fix: `helm uninstall <name>` then reinstall
+
+### Mongo Express not accessible in browser
+- minikube runs in VM so LoadBalancer has no real external IP
+- fix: `minikube service mongo-express-service` creates tunnel
+
+### Ingress ADDRESS showing blank
+- ingress controller not enabled
+- fix: `minikube addons enable ingress` then wait 2-3 min
+
+### dashboard.com not resolving
+- no local DNS entry for dashboard.com
+- fix: add `192.168.49.2 dashboard.com` to `/etc/hosts`
+- then run `minikube tunnel`
+
+### Secret not found when Pod starts
+- deployment applied before secret existed
+- fix: always apply Secret first, then ConfigMap, then Deployment
+
+### Pod stuck in Pending
+- fix: `kb describe pod <name>` and check Events at bottom
 
 
 
