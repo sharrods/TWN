@@ -53,8 +53,11 @@ pipeline {
                     sh 'git status'
                     sh 'git branch'
                     sh 'git config --list'
-                    
+
+
                     sh "git remote set-url origin https://${USER}:${PASS}@github.com/sharrods/TWN.git"
+                    sh 'git checkout feature/payment'
+                    sh 'git pull origin feature/payment'
                     sh 'git add .'
                     sh "git commit -m 'ci: version bump ${IMAGE_NAME}'"
                     sh 'git push origin HEAD:feature/payment'                
