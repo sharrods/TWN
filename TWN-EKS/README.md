@@ -185,12 +185,30 @@ kb describe hpa <name>
 eksctl create cluster \
 --name demo-cluster \
 --version 1.32 \
---region eu-central-1 \
+--region us-east-1 \
 --nodegroup-name demo-nodes \
 --node-type t2.micro \
 --nodes 2 \
 --nodes-min 1 \
 --nodes-max 3
+
+2026-04-05 16:10:28 [ℹ]  eksctl version 0.225.0
+2026-04-05 16:10:28 [ℹ]  using region us-east-1
+2026-04-05 16:10:29 [ℹ]  setting availability zones to [us-east-1a us-east-1d]
+2026-04-05 16:10:29 [ℹ]  subnets for us-east-1a - public:192.168.0.0/19 private:192.168.64.0/19
+2026-04-05 16:10:29 [ℹ]  subnets for us-east-1d - public:192.168.32.0/19 private:192.168.96.0/19
+2026-04-05 16:10:29 [ℹ]  nodegroup "demo-nodes" will use "" [AmazonLinux2023/1.32]
+
+
+
+026-04-05 16:18:35 [ℹ]  creating addon: vpc-cni
+2026-04-05 16:18:35 [ℹ]  successfully created addon: vpc-cni
+2026-04-05 16:18:36 [ℹ]  creating addon: kube-proxy
+2026-04-05 16:18:36 [ℹ]  successfully created addon: kube-proxy
+2026-04-05 16:18:37 [ℹ]  creating addon: coredns
+2026-04-05 16:18:37 [ℹ]  successfully created addon: coredns
+2026-04-05 16:20:39 [ℹ]  building managed nodegroup stack "eksctl-demo-cluster-nodegroup-demo-nodes"
+2026-04-05 16:20:39 [ℹ]  deploying stack "eksctl-demo-cluster-nodegroup-demo-nodes"
 
 
 
@@ -202,24 +220,6 @@ brew install weaveworks/tap/eksctl
 ```
 
 
-
-### Create Cluster
-```bash
-eksctl create cluster \
-  --name my-cluster \
-  --region us-east-1 \
-  --nodegroup-name my-nodes \
-  --node-type t3.micro \
-  --nodes 2 \
-  --nodes-min 1 \
-  --nodes-max 3
-```
-
-### Check Cluster
-```bash
-eksctl get cluster
-kb get node
-```
 
 ### Delete Cluster
 ```bash
@@ -233,11 +233,40 @@ eksctl delete cluster --name my-cluster
 ---
 
 ## Lesson 6 — Deploy to EKS from Jenkins Pipeline
+- We now have nodes on EKS from last lesson 
+- ❯ kb get node
+NAME                             STATUS   ROLES    AGE   VERSION
+ip-192-168-11-219.ec2.internal   Ready    <none>   22m   v1.32.12-eks-f69f56f
+ip-192-168-36-237.ec2.internal   Ready    <none>   22m   v1.32.12-eks-f69f56f
+
+- add config file to jenkins 
+    - jenkins@2be5c6b8fe98:~$ mkdir .kube
+    - jenkins@2be5c6b8fe98:~$ exit
+- On host you have to copy to docker container 
+    - root@Jenkins-2vcpu-4gb-nyc1-01:~# docker cp config 2be5c6b8fe98:/var/jenkins_home/.kube/
+      Successfully copied 3.58kB to 2be5c6b8fe98:/var/jenkins_home/.kube/
+
+
 
 ### What Changes vs Module 9
 - target is EKS cluster not single EC2
 - need kubectl configured in Jenkins to talk to EKS
 - need AWS credentials in Jenkins
+- IAM cli tools was added with eksctl tool
+     - root@2be5c6b8fe98:/# ls -lah /usr/local/bin/
+	total 120M
+	drwxr-xr-x 1 root root 4.0K Apr  5 22:51 .
+	drwxr-xr-x 1 root root 4.0K Nov 17 00:00 ..
+	-rwxr-xr-x 1 root root  52M Apr  5 22:51 aws-iam-authenticator
+	-rwxr-xr-x 1 root root  13M Mar 18 12:41 git-lfs
+	-rwxrwxr-x 1 root root 7.1K Mar 18 12:39 jenkins-support
+	-rwxrwxr-x 1 root root 2.5K Mar 18 12:39 jenkins.sh
+	-rwxr-xr-x 1 root root  56M Apr  5 00:30 kubectl
+
+
+
+
+
 
 ### Jenkins Setup for EKS
 - install kubectl in Jenkins container
@@ -259,8 +288,63 @@ stage('deploy') {
 
 ---
 
-## Lesson 7 — Deploy to LKE from Jenkins (Bonus)
-[fill in as you go]
+## Lesson 7 — Deploy to LKE Cluster from Jenkins Pipeline (Bonus)
+
+### What I Built
+- Connected Jenkins pipeline to Linode LKE cluster
+- Deployed nginx to LKE cluster from Jenkins using kubectl
+- Verified pod running on Linode worker nodes
+
+### Setup
+- Created LKE cluster on Linode (3 nodes, $36/month, Atlanta GA)
+- Downloaded kubeconfig from Linode dashboard
+- Added full kubeconfig file to Jenkins as Secret File credential (lke-creds)
+- Installed k8s-switch script to manage multiple cluster contexts
+
+### Jenkinsfile
+```groovy
+pipeline {   
+    agent any
+    stages {
+        stage("Build") {
+            steps {
+                script {
+                    echo "Building Application...."
+                }
+            }
+        }
+        stage("build image") {
+            steps {
+                script {
+                    echo "Building the image..."
+                }
+            }
+        }
+        stage("deploy") {
+            steps {
+                script {
+                    echo 'deploying docker image...'
+                    withKubeConfig([credentialsId: 'lke-creds', serverUrl: 'https://23cae765-beed-4004-bfdd-ce133bcb9bbd.us-southeast-1-gw.linodelke.net:443']) {
+                        sh 'kubectl create deployment nginx-deployment --image=nginx'
+                    }
+                }
+            }
+        }               
+    }
+}
+```
+
+### Validation Commands
+```bash
+kb get pods
+kb get pods -w
+kb get deployments
+kb describe deployment nginx-deployment
+```
+
+### Verified Output
+
+
 
 ---
 
@@ -336,7 +420,40 @@ Code Push → GitHub Webhook
   replicas cannot exceed what your nodes can handle
   cluster autoscaler cannot add nodes beyond the max group size
 ```
+---
 
+## Issues and Resolutions
+
+### kubectl pointing at wrong cluster
+- Error: `dial tcp: lookup BFBE8A6E13F8186F1B1B6DB7D085D396.gr7.us-east-1.eks.amazonaws.com: no such host`
+- Cause: KUBECONFIG was pointing at old deleted EKS cluster in ~/.kube/config
+- Fix: `k8 linode ~/Downloads/linode-kube-cluster-test-kubeconfig.yaml`
+- Root cause: every new terminal session resets KUBECONFIG to ~/.kube/config default
+- Permanent fix: `kubectl config use-context minikube --kubeconfig ~/.kube/config`
+  so default context points to something that exists
+
+### k8 linode switch not persisting between terminals
+- Cause: `export KUBECONFIG` inside script only lives in script process not current shell
+- Fix: changed alias to `source /usr/local/bin/k8s-switch` so exports stick in current session
+- Added to ~/.zshrc: `alias k8='source /usr/local/bin/k8s-switch'`
+
+### Jenkins pipeline failed — wrong LKE endpoint
+- Error: `failed to create deployment` connecting to old Linode cluster endpoint
+- Cause: Jenkinsfile had endpoint from previous Linode cluster that was deleted
+- Wrong: `https://f8cdca95-5ea5-426d-9ef2-58783fc333ec.us-southeast-2-gw.linodelke.net`
+- Fixed: `https://23cae765-beed-4004-bfdd-ce133bcb9bbd.us-southeast-1-gw.linodelke.net:443`
+- Lesson: every new Linode cluster gets a new API endpoint URL
+  update Jenkinsfile serverUrl when recreating clusters
+
+### Jenkins credentials had old token
+- Cause: new Linode cluster generates new kubeconfig with different token
+- Fix: downloaded new kubeconfig from Linode dashboard
+  updated Jenkins credential lke-creds with new kubeconfig file
+
+### k8s-switch script linode case not exporting to current shell
+- Cause: export in a subprocess cannot affect parent shell environment
+- Fix: changed alias from execute to source
+  `alias k8='source /usr/local/bin/k8s-switch'`
 
 
 
