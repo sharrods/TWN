@@ -185,7 +185,7 @@ kb describe hpa <name>
 eksctl create cluster \
 --name demo-cluster \
 --version 1.32 \
---region eu-central-1 \
+--region us-east-1 \
 --nodegroup-name demo-nodes \
 --node-type t2.micro \
 --nodes 2 \
@@ -259,8 +259,63 @@ stage('deploy') {
 
 ---
 
-## Lesson 7 — Deploy to LKE from Jenkins (Bonus)
-[fill in as you go]
+## Lesson 7 — Deploy to LKE Cluster from Jenkins Pipeline (Bonus)
+
+### What I Built
+- Connected Jenkins pipeline to Linode LKE cluster
+- Deployed nginx to LKE cluster from Jenkins using kubectl
+- Verified pod running on Linode worker nodes
+
+### Setup
+- Created LKE cluster on Linode (3 nodes, $36/month, Atlanta GA)
+- Downloaded kubeconfig from Linode dashboard
+- Added full kubeconfig file to Jenkins as Secret File credential (lke-creds)
+- Installed k8s-switch script to manage multiple cluster contexts
+
+### Jenkinsfile
+```groovy
+pipeline {   
+    agent any
+    stages {
+        stage("Build") {
+            steps {
+                script {
+                    echo "Building Application...."
+                }
+            }
+        }
+        stage("build image") {
+            steps {
+                script {
+                    echo "Building the image..."
+                }
+            }
+        }
+        stage("deploy") {
+            steps {
+                script {
+                    echo 'deploying docker image...'
+                    withKubeConfig([credentialsId: 'lke-creds', serverUrl: 'https://23cae765-beed-4004-bfdd-ce133bcb9bbd.us-southeast-1-gw.linodelke.net:443']) {
+                        sh 'kubectl create deployment nginx-deployment --image=nginx'
+                    }
+                }
+            }
+        }               
+    }
+}
+```
+
+### Validation Commands
+```bash
+kb get pods
+kb get pods -w
+kb get deployments
+kb describe deployment nginx-deployment
+```
+
+### Verified Output
+
+
 
 ---
 
@@ -336,7 +391,40 @@ Code Push → GitHub Webhook
   replicas cannot exceed what your nodes can handle
   cluster autoscaler cannot add nodes beyond the max group size
 ```
+---
 
+## Issues and Resolutions
+
+### kubectl pointing at wrong cluster
+- Error: `dial tcp: lookup BFBE8A6E13F8186F1B1B6DB7D085D396.gr7.us-east-1.eks.amazonaws.com: no such host`
+- Cause: KUBECONFIG was pointing at old deleted EKS cluster in ~/.kube/config
+- Fix: `k8 linode ~/Downloads/linode-kube-cluster-test-kubeconfig.yaml`
+- Root cause: every new terminal session resets KUBECONFIG to ~/.kube/config default
+- Permanent fix: `kubectl config use-context minikube --kubeconfig ~/.kube/config`
+  so default context points to something that exists
+
+### k8 linode switch not persisting between terminals
+- Cause: `export KUBECONFIG` inside script only lives in script process not current shell
+- Fix: changed alias to `source /usr/local/bin/k8s-switch` so exports stick in current session
+- Added to ~/.zshrc: `alias k8='source /usr/local/bin/k8s-switch'`
+
+### Jenkins pipeline failed — wrong LKE endpoint
+- Error: `failed to create deployment` connecting to old Linode cluster endpoint
+- Cause: Jenkinsfile had endpoint from previous Linode cluster that was deleted
+- Wrong: `https://f8cdca95-5ea5-426d-9ef2-58783fc333ec.us-southeast-2-gw.linodelke.net`
+- Fixed: `https://23cae765-beed-4004-bfdd-ce133bcb9bbd.us-southeast-1-gw.linodelke.net:443`
+- Lesson: every new Linode cluster gets a new API endpoint URL
+  update Jenkinsfile serverUrl when recreating clusters
+
+### Jenkins credentials had old token
+- Cause: new Linode cluster generates new kubeconfig with different token
+- Fix: downloaded new kubeconfig from Linode dashboard
+  updated Jenkins credential lke-creds with new kubeconfig file
+
+### k8s-switch script linode case not exporting to current shell
+- Cause: export in a subprocess cannot affect parent shell environment
+- Fix: changed alias from execute to source
+  `alias k8='source /usr/local/bin/k8s-switch'`
 
 
 
