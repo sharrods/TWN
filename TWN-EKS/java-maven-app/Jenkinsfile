@@ -1,0 +1,32 @@
+pipeline {   
+    agent any
+    stages {
+        stage("Build") {
+            steps {
+                script {
+                    echo "Building Application..."
+                }
+            }
+        }
+        stage("build image") {
+            steps {
+                script {
+                    echo "Buildnig the image..."
+                }
+            }
+        }
+
+        stage("deploy") {
+            steps {
+                script {
+                    echo 'deploying docker image...'
+                    withKubeConfig([credentialsId: 'lke-creds', serverUrl: 'https://23cae765-beed-4004-bfdd-ce133bcb9bbd.us-southeast-1-gw.linodelke.net:443']) {
+                        sh 'kubectl create deployment nginx-deployment --image=nginx'
+                    }
+                }
+            }
+        }               
+    }
+} 
+
+

@@ -272,6 +272,55 @@ Code Push → GitHub → Jenkins Trigger → Build → Test → Push Artifact �
 - replay in jenkins files 
 
 
+### Trigger Jenkins Webhooks
+- setup a new credentials in jenkins 
+    - add credentials
+    - kind: secret text
+    - secret: use the orignal PAT here
+    - ID: github-pat or whatever
+- setup jenkins to use github plugin
+   - system -> github
+   - add github server
+   - name: github
+   - credentials: github-pat-webhook
+   - select "test" and should see credentials verified
+   - manage hooks
+   - save 
+
+- Setup webhook in github repository 
+- Settings (on the repo) -> webhooks -> add webhook
+   - Payload URL: http://137.184.221.131:8080/github-webhook/ 
+   - content type: application/json
+   - Which events: "just the push event"
+   - save
+
+- Setup trigger in your jenkins pipeline 
+   - configure: build triggers
+   - select: "Check GitHub hook trigger for GITScm polling" 
+
+### How to make trigger work on muli-pipeline
+   - jenkins -> manage jenkins -> plugins 
+   - search and install Multibranch Scan Webhook Trigger
+   - go to you multibranch-pipeline in jenkins
+   - Select configure -> build configuration -> Scan Repository Triggers
+   - Select "Scan by webhook" 
+   - Trigger token: githubtoken
+   - expand the trigger token section:
+   - copy webhook format in the dropdown: JENKINS_URL/multibranch-webhook-trigger/invoke?token=[Trigger token]
+   - go to github settings -> webhook. Create new webhook (2nd webhook)
+        - http://137.184.221.131:8080/multibranch-webhook-trigger/invoke?token=githubtoken
+
+### Versioning Increment 
+   - mvn build-helper:parse-version 
+   - add the command to the build pipeline
+   - before build app stage you will add increment step
+   - change docker file to use java-maven-app-*.jar
+   - remove entry point. 
+        - CMD java -jar java-maven-app-*.jar
+   - jenkins file changes
+        - change the hardcoded items
+
+
 
 
 
@@ -323,7 +372,7 @@ ERROR: Couldn't find any revision to build. Verify the repository and branch con
 
 
 
-cript.groovy not found by Jenkins
+### Script.groovy not found by Jenkins
 - Error: `NoSuchFileException: /var/jenkins_home/workspace/my-pipeline/script.groovy`
 - Cause: Jenkins looks for script.groovy in workspace root by default
 - Resolution: Update load path in Jenkinsfile to match actual file location
@@ -396,6 +445,57 @@ cript.groovy not found by Jenkins
 - Rule: You can only push a tag that exists locally
 
 
+### Failed to set environment variable in Jenkinsfile
+- Error: `RejectedAccessException: Scripts not permitted to use method 
+  groovy.lang.GroovyObject invokeMethod java.lang.String java.lang.Object`
+- Cause: Missing `=` when setting env variable
+  Groovy interpreted it as a method call instead of an assignment
+- Wrong:  `env.IMAGE_NAME "$version-$BUILD_NUMBER"`
+- Fixed:  `env.IMAGE_NAME = "$version-$BUILD_NUMBER"`
+- Rule: Always use `=` when assigning environment variables in Jenkinsfile
+
+### Maven version plugin not found
+- Error: `No plugin found for prefix 'version'`
+- Cause: Typo — plugin name is `versions` (plural) not `version`
+- Wrong:  `mvn build-helper:parse-version version:set versions:commit`
+- Fixed:  `mvn build-helper:parse-version versions:set versions:commit`
+- Rule: Maven versions plugin always uses plural — versions:set, versions:commit
+
+
+## Complete Working Jenkinsfile Pipeline
+
+### Pipeline Stages
+1. **increment version** — reads pom.xml version, increments patch number, 
+   sets IMAGE_NAME env variable with version and build number
+2. **build app** — runs mvn clean package to build JAR
+3. **build image** — builds Docker image tagged with IMAGE_NAME, 
+   pushes to DockerHub
+4. **deploy** — placeholder for deployment step
+5. **commit version update** — commits incremented pom.xml version 
+   back to GitHub so next build starts from new version
+
+### CI Loop Prevention
+- **Problem:** Jenkins commits version bump back to GitHub which 
+  triggers another build creating an infinite loop
+- **My approach:** Added 'check commit' stage checking for 'ci:' prefix
+  in commit message — worked but added complexity to Jenkinsfile
+- **Nana's approach:** Install **Ignore Committer Strategy** plugin
+  - Manage Jenkins → Configure → Branch Sources → Build Strategies
+  - Add strategy: Ignore Committer Strategy
+  - Add Jenkins user email: `jenkins@example.com`
+  - Jenkins automatically skips builds triggered by its own commits
+  - Cleaner — no Jenkinsfile changes needed
+- **Resolution:** Removed manual check commit stage, 
+  installed Ignore Committer Strategy plugin ✅
+
+### Key Lessons
+- Jenkins workspace is ephemeral — version bump must be committed 
+  back to Git or next build starts from same version
+- Each sh command runs in fresh shell — use && or -f flag for paths
+- env.IMAGE_NAME needs = for assignment not just space
+- withCredentials variables use $VAR not ${VAR} in single quotes
+- git remote set-url with credentials allows Jenkins to push to GitHub
+- Build tag and push tag must always match exactly
 
 
 
@@ -406,3 +506,7 @@ cript.groovy not found by Jenkins
 - Jenkins needs same build tools as your local machine
 - Credentials stored in Jenkins — never hardcoded in Jenkinsfile
 - Each stage in the pipeline maps to a step you already did manually
+- Running tests and publishing test results are two separate things
+- mvn test runs the tests
+- junit 'target/surefire-reports/*.xml' publishes results to Jenkins UI
+- Without the junit step Jenkins has no visibility into test pass/fail
