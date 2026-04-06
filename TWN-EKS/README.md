@@ -233,11 +233,41 @@ eksctl delete cluster --name my-cluster
 ---
 
 ## Lesson 6 — Deploy to EKS from Jenkins Pipeline
+- We now have nodes on EKS from last lesson 
+- ❯ kb get node
+NAME                             STATUS   ROLES    AGE   VERSION
+ip-192-168-11-219.ec2.internal   Ready    <none>   22m   v1.32.12-eks-f69f56f
+ip-192-168-36-237.ec2.internal   Ready    <none>   22m   v1.32.12-eks-f69f56f
+
+- add config file to jenkins 
+    - jenkins@2be5c6b8fe98:~$ mkdir .kube
+    - jenkins@2be5c6b8fe98:~$ exit
+- On host you have to copy to docker container 
+    - root@Jenkins-2vcpu-4gb-nyc1-01:~# docker cp config 2be5c6b8fe98:/var/jenkins_home/.kube/
+      Successfully copied 3.58kB to 2be5c6b8fe98:/var/jenkins_home/.kube/
+
+- kb get pod
+NAME                                READY   STATUS    RESTARTS   AGE
+nginx-deployment-6cfb98644c-br895   1/1     Running   0          61s
+
+
+
 
 ### What Changes vs Module 9
 - target is EKS cluster not single EC2
 - need kubectl configured in Jenkins to talk to EKS
 - need AWS credentials in Jenkins
+- IAM cli tools was added with eksctl tool
+     - root@2be5c6b8fe98:/# ls -lah /usr/local/bin/
+	total 120M
+	drwxr-xr-x 1 root root 4.0K Apr  5 22:51 .
+	drwxr-xr-x 1 root root 4.0K Nov 17 00:00 ..
+	-rwxr-xr-x 1 root root  52M Apr  5 22:51 aws-iam-authenticator
+	-rwxr-xr-x 1 root root  13M Mar 18 12:41 git-lfs
+	-rwxrwxr-x 1 root root 7.1K Mar 18 12:39 jenkins-support
+	-rwxrwxr-x 1 root root 2.5K Mar 18 12:39 jenkins.sh
+	-rwxr-xr-x 1 root root  56M Apr  5 00:30 kubectl
+
 
 
 
@@ -260,6 +290,9 @@ stage('deploy') {
     }
 }
 ```
+- install gettext-base
+
+
 
 ---
 
