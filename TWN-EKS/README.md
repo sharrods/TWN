@@ -246,6 +246,11 @@ ip-192-168-36-237.ec2.internal   Ready    <none>   22m   v1.32.12-eks-f69f56f
     - root@Jenkins-2vcpu-4gb-nyc1-01:~# docker cp config 2be5c6b8fe98:/var/jenkins_home/.kube/
       Successfully copied 3.58kB to 2be5c6b8fe98:/var/jenkins_home/.kube/
 
+- kb get pod
+NAME                                READY   STATUS    RESTARTS   AGE
+nginx-deployment-6cfb98644c-br895   1/1     Running   0          61s
+
+
 
 
 ### What Changes vs Module 9
@@ -285,6 +290,9 @@ stage('deploy') {
     }
 }
 ```
+
+
+
 
 ---
 
