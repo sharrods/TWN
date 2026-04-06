@@ -379,6 +379,31 @@ Code Push → GitHub Webhook
 ---
 
 ## Lesson 10 — Complete CI/CD with EKS and ECR
+❯ kb get secret
+NAME               TYPE                             DATA   AGE
+aws-registry-key   kubernetes.io/dockerconfigjson   1      7s
+my-registry-key    kubernetes.io/dockerconfigjson   1      53m
+❯ kb get all
+NAME                                    READY   STATUS    RESTARTS   AGE
+pod/java-maven-app-5cd9c95584-bdrqp     1/1     Running   0          3m5s
+pod/java-maven-app-5cd9c95584-tsg74     1/1     Running   0          3m2s
+pod/nginx-deployment-6cfb98644c-br895   1/1     Running   0          129m
+
+NAME                     TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)   AGE
+service/java-maven-app   ClusterIP   10.100.106.146   <none>        80/TCP    4m45s
+service/kubernetes       ClusterIP   10.100.0.1       <none>        443/TCP   4h55m
+
+NAME                               READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/java-maven-app     2/2     2            2           4m45s
+deployment.apps/nginx-deployment   1/1     1            1           129m
+
+NAME                                          DESIRED   CURRENT   READY   AGE
+replicaset.apps/java-maven-app-5cd9c95584     2         2         2       3m5s
+replicaset.apps/java-maven-app-78b446b65b     0         0         0       3m52s
+replicaset.apps/java-maven-app-7d6d696db4     0         0         0       4m45s
+replicaset.apps/nginx-deployment-6cfb98644c   1         1         1       129m
+
+
 
 ### Full Pipeline Flow
 ```
