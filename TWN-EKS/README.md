@@ -291,6 +291,8 @@ stage('deploy') {
 }
 ```
 - install gettext-base
+- use kubectl to create secret 
+- 
 
 
 
