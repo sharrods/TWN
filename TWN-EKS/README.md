@@ -2,6 +2,13 @@
 # Module 11 — AWS EKS (Elastic Kubernetes Service)
 
 ## What I Built
+- Created EKS cluster via AWS Console and eksctl
+- Configured Cluster Autoscaler for automatic node scaling
+- Deployed nginx with LoadBalancer to EKS
+- Created Fargate profile for serverless pod scheduling
+- Deployed to LKE (Linode) from Jenkins pipeline
+- Built complete CI/CD pipeline: Jenkins → ECR → EKS
+- Managed multiple cluster contexts using k8s-switch script
 
 ---
 
@@ -22,6 +29,13 @@
 ---
 
 ## Lesson 2 — Create EKS Cluster with Console
+
+- Create EC2 IAM role for worker nodes with these policies:
+    - AmazonEC2ContainerRegistryReadOnly
+    - AmazonEKS_CNI_Policy
+    - AmazonEKSWorkerNodePolicy
+- Create node group and attach role
+
 
 ### What AWS Manages in EKS
 - control plane (API server, etcd, scheduler)
@@ -181,6 +195,8 @@ kb describe hpa <name>
 ---
 
 ## Lesson 5 — Create EKS with eksctl
+
+
 
 eksctl create cluster \
 --name demo-cluster \
@@ -359,7 +375,14 @@ kb describe deployment nginx-deployment
 ---
 
 ## Lesson 8 — Jenkins Credentials Best Practices
-[fill in as you go]
+
+- store AWS keys as Secret Text not username/password
+- store kubeconfig as Secret File not plain text
+- never hardcode credentials in Jenkinsfile
+- use credentialsId references only
+- AWS credentials set as environment variables in deploy stage only
+  not globally — limits exposure
+
 
 ---
 
@@ -421,6 +444,20 @@ Code Push → GitHub Webhook
 - DockerHub = external, rate limits, separate credentials
 - ECR is preferred for production EKS deployments
 
+
+### Cleanup
+```bash
+kb delete deployment java-maven-app
+kb delete deployment nginx-deployment
+kb delete service java-maven-app
+kb delete secret aws-registry-key
+eksctl delete cluster --name demo-cluster --region us-east-1
+aws ecr delete-repository --repository-name java-maven-app --force --region us-east-1
+```
+
+
+
+
 ---
 
 ## Key Concepts
@@ -432,6 +469,9 @@ Code Push → GitHub Webhook
 - HPA = scales pods, Cluster Autoscaler = scales nodes
 - Jenkins needs kubectl + AWS credentials to deploy to EKS
 - ECR preferred over DockerHub for production EKS
+- envsubst = substitutes environment variables into YAML files before applying
+- imagePullSecrets = how K8s authenticates to private registry to pull images
+- t2.micro too small for EKS worker nodes — use t3.small minimum
 
 ---
 
@@ -454,10 +494,6 @@ Code Push → GitHub Webhook
 - Lesson: always check your autoscaling group max before scaling replicas
   replicas cannot exceed what your nodes can handle
   cluster autoscaler cannot add nodes beyond the max group size
-```
----
-
-## Issues and Resolutions
 
 ### kubectl pointing at wrong cluster
 - Error: `dial tcp: lookup BFBE8A6E13F8186F1B1B6DB7D085D396.gr7.us-east-1.eks.amazonaws.com: no such host`
@@ -490,7 +526,34 @@ Code Push → GitHub Webhook
 - Fix: changed alias from execute to source
   `alias k8='source /usr/local/bin/k8s-switch'`
 
+### t2.micro node group timed out
+- Error: `exceeded max wait time for StackCreateComplete`
+- Cause: t2.micro has 1GB RAM — too small to run EKS system pods
+- Fix: use t3.small (2GB RAM) minimum for EKS worker nodes
 
+### eksctl overwrote Linode kubeconfig
+- Cause: KUBECONFIG env var was pointing at Linode file
+  eksctl wrote EKS config into that file instead of ~/.kube/config
+- Fix: always unset KUBECONFIG before running aws eks update-kubeconfig
+  or specify explicit output file: `--kubeconfig ~/eks-kubeconfig.yaml`
+
+
+### CloudFormation stuck on delete
+- Cause: LoadBalancer service still running — blocked VPC deletion
+- Fix: delete K8s services first then delete cluster
+  `kb delete svc <name>` removes LB automatically
+
+### Replicas exceeded node group max capacity
+- Set replicas=20 but node group max=2
+- Pods went Pending with: `NotTriggerScaleUp: max node group size reached`
+- Fix: scale replicas back down `kb edit deployment nginx`
+- Lesson: replicas must fit within node group capacity
+
+
+### Secret name mismatch
+- deployment.yaml referenced `my-registry-key`
+- created secret as `aws-registry-key`
+- Fix: update deployment.yaml imagePullSecrets to match secret name
 
 
 
