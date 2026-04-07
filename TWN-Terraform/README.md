@@ -282,18 +282,155 @@ terraform-learn/
 
 
 ### What I Built
+- tfvars
+- main.tf populated with additional items
+i # aws_default_route_table.main-rtb will be created
+  + resource "aws_default_route_table" "main-rtb" {
+      + arn                    = (known after apply)
+      + default_route_table_id = "rtb-02ea9fb11031c9b17"
+      + id                     = (known after apply)
+      + owner_id               = (known after apply)
+      + region                 = "us-east-1"
+      + route                  = [
+          + {
+              + cidr_block                 = "0.0.0.0/0"
+              + core_network_arn           = ""
+              + destination_prefix_list_id = ""
+              + egress_only_gateway_id     = ""
+              + gateway_id                 = "igw-068ff7cad0d1841b1"
+              + instance_id                = ""
+              + ipv6_cidr_block            = ""
+              + nat_gateway_id             = ""
+              + network_interface_id       = ""
+              + transit_gateway_id         = ""
+              + vpc_endpoint_id            = ""
+              + vpc_peering_connection_id  = ""
+            },
+        ]
+      + tags                   = {
+          + "Name" = "dev-main-rtb"
+        }
+      + tags_all               = {
+          + "Name" = "dev-main-rtb"
+        }
+      + vpc_id                 = (known after apply)
+    }
 
+  # aws_security_group.myapp-sg will be created
+  + resource "aws_security_group" "myapp-sg" {
+      + arn                    = (known after apply)
+      + description            = "Managed by Terraform"
+      + egress                 = [
+          + {
+              + cidr_blocks      = [
+                  + "0.0.0.0/0",
+                ]
+              + description      = ""
+              + from_port        = 0
+              + ipv6_cidr_blocks = []
+              + prefix_list_ids  = []
+              + protocol         = "-1"
+              + security_groups  = []
+              + self             = false
+              + to_port          = 0
+            },
+        ]
+      + id                     = (known after apply)
+      + ingress                = [
+          + {
+              + cidr_blocks      = [
+                  + "0.0.0.0/0",
+                ]
+              + description      = ""
+              + from_port        = 8080
+              + ipv6_cidr_blocks = []
+              + prefix_list_ids  = []
+              + protocol         = "tcp"
+              + security_groups  = []
+              + self             = false
+              + to_port          = 8080
+            },
+          + {
+              + cidr_blocks      = [
+                  + "71.205.216.150/32",
+                ]
+              + description      = ""
+              + from_port        = 22
+              + ipv6_cidr_blocks = []
+              + prefix_list_ids  = []
+              + protocol         = "tcp"
+              + security_groups  = []
+              + self             = false
+              + to_port          = 22
+            },
+        ]
+      + name                   = "myapp-sg"
+      + name_prefix            = (known after apply)
+      + owner_id               = (known after apply)
+      + region                 = "us-east-1"
+      + revoke_rules_on_delete = false
+      + tags                   = {
+          + "Name" = "dev-sg"
+        }
+      + tags_all               = {
+          + "Name" = "dev-sg"
+        }
+      + vpc_id                 = "vpc-0cd7e7c4e3476d3b9"
+    }
+
+Plan: 2 to add, 0 to change, 0 to destroy.
+- Security Groups
 
 
 ### VPC Setup
-[fill in as you go]
-
+resource "aws_vpc" "myapp-vpc" {
+  cidr_block = var.vpc_cidr_block
+  tags = {
+    Name: "${var.env_prefix}-vpc" 
+  }
+}
 ### Security Group
-resource
+resource "aws_security_group" "myapp-sg" {
+  name = "myapp-sg"
+  vpc_id = aws_vpc.myapp-vpc.id
 
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = [var.my_ip]
+  }
+  
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port       = 0
+    to_port         = 0
+    protocol        = "-1"
+    cidr_blocks     = ["0.0.0.0/0"]
+    prefix_list_ids = []
+  }
 
 ### EC2 Instance
-[fill in as you go]
+resource "aws_instance" "myapp-server" {
+  ami                     = data.aws_ami.latest-amazon-linux-image.id
+  instance_type           = var.instance_type
+
+  subnet_id               = aws_subnet.myapp-subnet-1.id
+  vpc_security_group_ids  = [aws_security_group.myapp-sg.id]
+  availability_zone       = var.avail_zone
+
+  associate_public_ip_address = true 
+  key_name                = "voip-lab-key"
+
+
+
+
 
 ### Files Created
 [fill in as you go]
@@ -499,5 +636,21 @@ terraform {
 - Rule: every variable in tfvars must have a matching variable block
   in your .tf filesfill in as you go]
 
+### aws_key_pair already exists in AWS
+- Error: `InvalidKeyPair.Duplicate: The keypair already exists`
+- Cause: added `aws_key_pair` resource block to create a key pair
+  that already existed in AWS outside of Terraform
+- Fix: remove the `aws_key_pair` resource block entirely
+  reference the existing key name directly in the EC2 resource:
+  `key_name = "voip-lab-key"`
+- Also removed: `variable "my_public_key"` and `my_public_key` from tfvars
+- Rule: if a resource already exists in AWS and wasn't created by Terraform
+  either reference it directly by name or import it with `terraform import`
+  never try to create it again with a resource block
 
+### Variable inside quotes not interpolated
+- Error: public key value was literal string "var.my_public_key" not actual key
+- Cause: `public_key = "var.my_public_key"` — variable wrapped in quotes
+- Fix: `public_key = var.my_public_key` — no quotes around variable reference
+- Rule: quotes around a variable reference treat it as a literal string
 
