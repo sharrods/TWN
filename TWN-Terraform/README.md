@@ -429,11 +429,25 @@ resource "aws_instance" "myapp-server" {
   key_name                = "voip-lab-key"
 
 
+- Automate provisioning Terraform 
+- execute commands on server at the time of creation
+- user_data = <<EOF
+		#!/bin/bash/
+		sudo yum update -y && sudo yum install -y docker
+		sudo systemctl start docker 
+		sudo usermod -aG docker ec2-user
+		docker run -p 8080:80 nginx
+		EOF
+user@ip-10-0-10-218 ~]$ docker ps
+CONTAINER ID   IMAGE     COMMAND                  CREATED          STATUS          PORTS                                   NAMES
+487cb046bb83   nginx     "/docker-entrypoint.…"   38 seconds ago   Up 36 seconds   0.0.0.0:8080->80/tcp, :::8080->80/tcp   heuristic_meninsky
+
 
 
 
 ### Files Created
-[fill in as you go]
+main.tf
+entry-script.sh
 
 ---
 
@@ -653,4 +667,11 @@ terraform {
 - Cause: `public_key = "var.my_public_key"` — variable wrapped in quotes
 - Fix: `public_key = var.my_public_key` — no quotes around variable reference
 - Rule: quotes around a variable reference treat it as a literal string
+
+### user_data script — nginx not running on EC2
+- Cause: shebang line had extra slash `#!/bin/bash/`
+- EC2 couldn't find the bash interpreter so entire script was skipped silently
+- Fix: `#!/bin/bash` — no trailing slash
+- Rule: always double check shebang line — silent failure if wrong
+
 
