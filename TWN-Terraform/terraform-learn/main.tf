@@ -141,11 +141,12 @@ resource "aws_instance" "myapp-server" {
 #                docker run -p 8080:80 nginx
 #*/                EOF
 
-  user_data = file("entry-script.sh")
+  user_data                   = file("entry-script.sh")
 
   user_data_replace_on_change = true
   
-  tags                    = {
+  tags                        = {
     Name: "${var.env_prefix}-server" 
   }
 }
+
