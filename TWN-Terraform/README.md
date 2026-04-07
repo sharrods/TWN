@@ -280,14 +280,17 @@ terraform-learn/
 
 ## Lessons 12-14 — Automate Provisioning EC2 with Terraform
 
+
 ### What I Built
-[fill in as you go]
+
+
 
 ### VPC Setup
 [fill in as you go]
 
 ### Security Group
-[fill in as you go]
+resource
+
 
 ### EC2 Instance
 [fill in as you go]
@@ -444,4 +447,57 @@ terraform {
 ---
 
 ## Issues and Resolutions
+
+[cate resource name across .tf files
+- Error: `Duplicate resource "aws_subnet" configuration`
+- Cause: same resource name declared in both main.tf and main_old.tf
+  Terraform reads ALL .tf files in a directory as one module
+- Fix: delete or rename main_old.tf
+  `mv main_old.tf main_old.tf.bak`
+- Rule: resource names must be unique across ALL .tf files in same directory
+
+### Reference to undeclared resource — dot vs underscore typo
+- Error: `Reference to undeclared resource — A managed resource "aws" "vpc" has not been declared`
+- Cause: used dots instead of underscores in resource reference
+  `aws.vpc.myapp-vpc.default_route_table_id`
+- Fix: use underscores in resource type, dots to chain attributes
+  `aws_vpc.myapp-vpc.default_route_table_id`
+- Rule: resource types always use underscores, attributes chain with dots
+
+### Route table association referencing commented out resource
+- Error: `Reference to undeclared resource "aws_route_table" "myapp-route-table"`
+- Cause: aws_route_table was commented out but aws_route_table_association
+  still referenced it
+- Fix: either uncomment the route table or switch to aws_default_route_table
+  and remove the association resource
+
+### Wrong resource type name
+- Error: `An argument named X is not expected here`
+- Cause: used `aws_security` instead of `aws_security_group`
+- Fix: `resource "aws_security_group" "myapp-sg"`
+- Rule: resource type names are defined by the AWS provider — check docs
+
+### Variable inside quotes in list
+- Error: plan shows literal string "var.my_ip" instead of IP value
+- Cause: variable wrapped in quotes inside list
+  `cidr_blocks = ["var.my_ip"]`
+- Fix: remove quotes — variable reference needs no quotes in a list
+  `cidr_blocks = [var.my_ip]`
+
+### Protocol value uppercase
+- Error: `InvalidParameterValue — The value 'TCP' is not valid`
+- Cause: AWS API expects lowercase protocol values
+- Fix: `protocol = "tcp"` not `protocol = "TCP"`
+- Rule: argument values are case sensitive — always check provider docs
+
+### Variable declared in tfvars but not in configuration
+- Error: `Value for undeclared variable "my_ip"`
+- Cause: `my_ip = "x.x.x.x/32"` added to terraform.tfvars
+  but no matching variable block in main.tf or variables.tf
+- Fix: add variable declaration to your config
+  `variable "my_ip" {}`
+- Rule: every variable in tfvars must have a matching variable block
+  in your .tf filesfill in as you go]
+
+
 
