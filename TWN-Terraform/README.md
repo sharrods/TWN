@@ -448,6 +448,16 @@ CONTAINER ID   IMAGE     COMMAND                  CREATED          STATUS       
 ### Files Created
 main.tf
 entry-script.sh
+- create new branch 
+- feature/deploy-to-ec2-default-components
+
+- ❯ git checkout -b feature/provisioners
+Switched to a new branch 'feature/provisioners'
+
+░▒▓    ~/Documents/Techworld-with-nana  on   feature/provisioners *1 ··
+
+
+
 
 ---
 
