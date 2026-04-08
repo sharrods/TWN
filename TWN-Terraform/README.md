@@ -448,6 +448,18 @@ CONTAINER ID   IMAGE     COMMAND                  CREATED          STATUS       
 ### Files Created
 main.tf
 entry-script.sh
+- create new branch 
+- feature/deploy-to-ec2-default-components
+
+- ❯ git checkout -b feature/provisioners
+Switched to a new branch 'feature/provisioners'
+
+░▒▓    ~/Documents/Techworld-with-nana  on   feature/provisioners *1 ··
+
+
+
+
+
 
 ---
 
@@ -484,7 +496,12 @@ provisioner "file" {
 ---
 
 ## Lessons 16-18 — Modules in Terraform
-
+### What I Built
+- Refactored flat main.tf into reusable modules
+- Created subnet module handling VPC networking components
+- Created webserver module handling EC2 and security group
+- Parameterized everything through tfvars file
+- Connected modules together through outputs and variables
 ### What Modules Are
 - reusable packages of Terraform configuration
 - like functions in programming
@@ -504,7 +521,7 @@ modules/
 ```hcl
 module "webserver" {
   source        = "./modules/webserver"
-  instance_type = "t2.micro"
+  instance_type = "t3.micro"
   region        = "us-east-1"
 }
 ```
@@ -594,6 +611,10 @@ terraform {
 - Modules = reusable packages of Terraform config
 - Remote State = store state in S3 for team collaboration
 - TF_VAR_ = environment variable prefix for Terraform variables
+- - child module = called by root with module {} block
+- variables.tf in each module = what inputs it accepts
+- never put resource blocks in both root and module — pick one place
+- data source block in module needs its own providers.tf or inherits from root
 
 ---
 
@@ -674,4 +695,17 @@ terraform {
 - Fix: `#!/bin/bash` — no trailing slash
 - Rule: always double check shebang line — silent failure if wrong
 
+### Unsupported attribute on module output
+- Error: `Can't access attributes on a primitive-typed value (string)`
+- Cause: calling .id on a value that was already an ID string
+- Fix: remove the extra .id — if output already returns ID use it directly
+
+### Wrong attribute name on AMI output
+- Error: `This object does not have an attribute named "ami_id"`
+- Cause: used .ami_id instead of .id on AMI data source
+- Fix: use data.aws_ami.latest-amazon-linux-image.id
+
+### Duplicate aws_instance in root and module
+- Cause: aws_instance resource left in root/main.tf after moving to webserver module
+- Fix: remove aws_instance from root/main.tf — it should only live in webserver/main.tf
 
