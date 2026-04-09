@@ -25,7 +25,7 @@ module "eks" {
   eks_managed_node_groups   = {
     dev = {
       ami_type              = "AL2023_x86_64_STANDARD"
-      instance_types        = ["t3.smal"]
+      instance_types        = ["t3.small"]
 
       min_size              = 1
       max_size              = 3
@@ -35,7 +35,7 @@ module "eks" {
 
   tags                      = {
     environment = "development"
-    applicaition = "myapp"
+    application = "myapp"
   }
 }
 
