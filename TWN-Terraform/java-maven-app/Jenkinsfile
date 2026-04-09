@@ -38,7 +38,7 @@ pipeline {
       steps {
         script {
           dir('TWN-Terraform/java-maven-app/Terraform') {
-            sh "terraform init -migrate-state -input=false"
+            sh "terraform init -migrate-state -force-copy -input=false"
             sh "terraform apply --auto-approve"
             EC2_PUBLIC_IP = sh(
               script: "terraform output ec2_public_ip",
