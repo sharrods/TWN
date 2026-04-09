@@ -900,10 +900,19 @@ terraform {
   newly configured "s3" backend. No existing state was found in the newly
   configured "s3" backend.
 
-- Fix: Added  `-migrate-state -force-copy -input=false`  
+- Added  `-migrate-state  -input=false`  
 	- migrate-state: Automatically moves your local tfstate —> S3 
 	- input=false: Disables all interactive prompts
-	- force-copy: skips confirmation
+	- Error: [31m│[0m [0m[1m[31mError: [0m[0m[1mCan't ask approval for state migration when interactive input is disabled.
+		 [31m│[0m [0m
+		 [31m│[0m [0mPlease remove the "-input=false" option and try again.[0m
+
+- Fix: `terraform init -migrate-state -force-copy -input=false`
+
+
+
+
+
 
 
 bashgit add TWN-Terraform/README.md
