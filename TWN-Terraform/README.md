@@ -543,17 +543,186 @@ module "vpc" {
 ## Lessons 19-21 — Automate Provisioning EKS with Terraform
 
 ### What I Built
-[fill in as you go]
 
-### EKS Cluster Config
-[fill in as you go]
+- Provisioned full EKS cluster on AWS using Terraform community modules
+- Created VPC with public and private subnets across multiple AZs
+- Deployed managed node group with auto-scaling
+- Connected VPC module outputs to EKS module inputs
+- All infrastructure defined as code — no manual console clicks
 
-### Node Group Config
-[fill in as you go]
+terraform-learn-eks/
+├── vpc.tf               # VPC module configuration
+├── eks-cluster.tf       # EKS cluster module configuration
+├── terraform.tfvars     # variable values (gitignored)
+└── .terraform/          # downloaded modules (gitignored)
+
+### vpc.tf — VPC Setup Using Community Module
+```hcl
+module "myapp-vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "6.0.1"
+
+  name            = "myapp-vpc"
+  cidr            = var.vpc_cidr_block
+  private_subnets = var.private_subnet_cidr_blocks
+  public_subnets  = var.public_subnet_cidr_blocks
+  azs             = data.aws_availability_zones.azs.names
+
+  enable_nat_gateway   = true
+  single_nat_gateway   = true
+  enable_dns_hostnames = true
+
+  tags = {
+    "kubernetes.io/cluster/myapp-eks-cluster" = "shared"
+  }
+
+  public_subnet_tags = {
+    "kubernetes.io/cluster/myapp-eks-cluster" = "shared"
+    "kubernetes.io/role/elb"                  = 1
+  }
+
+  private_subnet_tags = {
+    "kubernetes.io/cluster/myapp-eks-cluster" = "shared"
+    "kubernetes.io/role/internal-elb"         = 1
+  }
+}
+```
+
+### eks-cluster.tf — EKS Cluster Using Community Module
+```hcl
+module "eks" {
+  source  = "terraform-aws-modules/eks/aws"
+  version = "21.17.1"
+
+  name               = "myapp-eks-cluster"
+  kubernetes_version = "1.33"
+
+  subnet_ids = module.myapp-vpc.private_subnets
+  vpc_id     = module.myapp-vpc.vpc_id
+
+  endpoint_public_access                   = true
+  enable_cluster_creator_admin_permissions = true
+
+  addons = {
+    coredns                = {}
+    eks-pod-identity-agent = { before_compute = true }
+    kube-proxy             = {}
+    vpc-cni                = { before_compute = true }
+  }
+
+  eks_managed_node_groups = {
+    dev = {
+      ami_type       = "AL2023_x86_64_STANDARD"
+      instance_types = ["t3.small"]
+      min_size       = 1
+      max_size       = 3
+      desired_size   = 3
+    }
+  }
+
+  tags = {
+    environment = "development"
+    application = "myapp"
+  }
+}
+```
+
+### terraform.tfvars
+```hcl
+vpc_cidr_block             = "10.0.0.0/16"
+private_subnet_cidr_blocks = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+public_subnet_cidr_blocks  = ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]
+```
+
+### What Each Section Does
+
+#### VPC Module
+- creates VPC, subnets, internet gateway, route tables, NAT gateway automatically
+- public subnets = load balancers live here, accessible from internet
+- private subnets = worker nodes live here, not directly reachable from internet
+- NAT gateway = allows worker nodes in private subnet to pull Docker images
+- single_nat_gateway = one NAT gateway saves cost (~$32/month each)
+- azs = spreads subnets across all AZs in region for high availability
+- kubernetes tags = required so EKS can discover which VPC and subnets to use
+
+#### EKS Module
+- creates control plane, IAM roles, KMS encryption, CloudWatch logs
+- subnet_ids points to private subnets from VPC module output
+- vpc_id references VPC module output
+- addons = K8s system components installed automatically
+    - coredns = internal cluster DNS
+    - kube-proxy = network rules on each node
+    - vpc-cni = pod networking
+    - eks-pod-identity-agent = IAM permissions for pods
+    - before_compute = true means addon installs before worker nodes join
+- managed node group = AWS handles patching and updates of worker nodes
+- enable_cluster_creator_admin_permissions = your AWS user gets kubectl admin access automatically
+
+#### How Modules Connect
+
+module outputs:
+module.myapp-vpc.private_subnets → used by eks module subnet_ids
+module.myapp-vpc.vpc_id          → used by eks module vpc_id
+eks module creates:
+62 resources total across VPC and EKS
+###
+excerpt from terraform apply 
+
+
+Plan: 62 to add, 0 to change, 0 to destroy.
+module.eks.module.eks_managed_node_group["dev"].aws_iam_role.this[0]: Creating...
+module.myapp-vpc.aws_vpc.this[0]: Creating...
+module.eks.aws_iam_role.this[0]: Creating...
+module.eks.aws_cloudwatch_log_group.this[0]: Creating...
+module.eks.aws_cloudwatch_log_group.this[0]: Creation complete after 1s [id=/aws/eks/myapp-eks-cluster/cluster]
+module.eks.module.eks_managed_node_group["dev"].aws_iam_role.this[0]: Creation complete after 1s [id=dev-eks-node-group-20260408231620378900000001]
+module.eks.aws_iam_role.this[0]: Creation complete after 1s [id=myapp-eks-cluster-cluster-20260408231620379100000002]
+module.eks.module.eks_managed_node_group["dev"].aws_iam_role_policy_attachment.this["AmazonEKS_CNI_Policy"]: Creating...
+module.eks.module.eks_managed_node_group["dev"].aws_iam_role_policy_attachment.this["AmazonEKSWorkerNodePolicy"]: Creating...
+module.eks.module.eks_managed_node_group["dev"].aws_iam_role_policy_attachment.this["AmazonEC2ContainerRegistryReadOnly"]: Creating...
+module.eks.aws_iam_role_policy_attachment.this["AmazonEKSClusterPolicy"]: Creating...
+module.eks.module.kms.data.aws_iam_policy_document.this[0]: Reading...
+module.eks.module.kms.data.aws_iam_policy_document.this[0]: Read complete after 0s [id=2998215644]
+module.eks.module.kms.aws_kms_key.this[0]: Creating...
+module.eks.module.eks_managed_node_group["de
+
+
+### Commands
+```bash
+terraform init      # downloads community modules from registry
+terraform plan      # preview 62 resources being created
+terraform apply     # takes 15-20 minutes — EKS control plane is slow
+terraform destroy   # takes 15-20 minutes — destroys in reverse order
+```
+
+### Connect kubectl After Apply
+```bash
+aws eks update-kubeconfig --name myapp-eks-cluster --region us-east-1
+kubectl get nodes
+```
+
+### Why Terraform Over eksctl For EKS
+- eksctl = fast, good for learning, limited customization
+- Terraform = full control, version controlled, reproducible
+- Terraform manages VPC + EKS together as one apply
+- eksctl only manages the cluster, not the surrounding infrastructure
+- in production Terraform is the standard approach
+
+
+
+
+
+❯ terraform state list
+
+░▒▓    ~/Documents/Techworld-with-nana/TWN-Terraform/terraform-learn-eks  on   feature/eks *1 !1 ······················· at 06:04:35 PM  ▓▒░
+❯
+
 
 ---
 
 ## Lessons 22-24 — Complete CI/CD with Terraform
+
+
 
 ### What I Built
 [fill in as you go]
@@ -709,3 +878,29 @@ terraform {
 - Cause: aws_instance resource left in root/main.tf after moving to webserver module
 - Fix: remove aws_instance from root/main.tf — it should only live in webserver/main.tf
 
+### Typo in argument name
+- Error: `An argument named "private_subnet_tabs" is not expected`
+- Cause: `tabs` instead of `tags`
+- Fix: `private_subnet_tags`
+
+### Missing closing quote in tag value
+- Error: `Invalid character` on tag line
+- Cause: `"kubernetes.io/role/internal-elb = 1` missing closing quote
+- Fix: `"kubernetes.io/role/internal-elb" = 1`
+
+### Nested .git folder blocking push
+- Cause: cloned Nana's repo into TWN subfolder creating nested git repo
+- Error: `You are not allowed to push code to this project`
+- Fix: `rm -rf <cloned-folder>/.git` then push from TWN root
+- Rule: always remove .git immediately after cloning into existing repo
+
+### S3 Bucket backend failed; Error asking for confirmation
+- Error: `Error asking for confirmation` 
+-  Pre-existing state was found while migrating the previous "local" backend to the
+  newly configured "s3" backend. No existing state was found in the newly
+  configured "s3" backend.
+- 
+
+bashgit add TWN-Terraform/README.md
+git commit -m "Add Lessons 19-21 EKS with Terraform README"
+git push origin feature/eks
