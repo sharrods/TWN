@@ -32,12 +32,12 @@ pipeline {
     stage("provision server") {
       environment {
         AWS_ACCESS_KEY_ID     = credentials('jenkins_aws_access_key_id')
-        AWS_SECRET_ACCESS_KEY = credentials('jenkins-aws_secret_access_key')
+        AWS_SECRET_ACCESS_KEY = credentials('jenkins_aws_secret')
         TF_VAR_env_prefix     = 'test'
       }
       steps {
         script {
-          dir('TWN-Terraform/terraform-learn_1') {
+          dir('TWN-Terraform/java-maven-app/Terraform') {
             sh "terraform init"
             sh "terraform apply --auto-approve"
             EC2_PUBLIC_IP = sh(

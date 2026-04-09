@@ -13,6 +13,9 @@ variable env_prefix {
 variable my_ip {
   default             = "71.205.216.150/32"
 }
+variable jenkins_ip {
+  default             = "137.184.221.131/32"
+}
 variable instance_type {
   default = "t3.micro"
 }
