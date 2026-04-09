@@ -899,7 +899,11 @@ terraform {
 -  Pre-existing state was found while migrating the previous "local" backend to the
   newly configured "s3" backend. No existing state was found in the newly
   configured "s3" backend.
-- 
+- Fix: Added  `-migrate-state -input=false`  
+	- migrate-state: Automatically moves your local tfstate —> S3 
+	- input=false: Disables all interactive prompts
+
+
 
 bashgit add TWN-Terraform/README.md
 git commit -m "Add Lessons 19-21 EKS with Terraform README"
