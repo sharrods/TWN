@@ -1,0 +1,44 @@
+def gv
+
+pipeline {   
+    agent any
+    tools {
+        maven 'Maven'
+    }
+    stages {
+        stage("init") {
+            steps {
+                script {
+                    gv = load "script.groovy"
+                }
+            }
+        }
+        stage("build jar") {
+            steps {
+                script {
+                    gv.buildJar()
+
+                }
+            }
+        }
+
+        stage("build image") {
+            steps {
+                script {
+                    gv.buildImage()
+                }
+            }
+        }
+        stage("provision server") {
+            // tf provision server
+            sh "terraform init"
+        }
+        stage("deploy") {
+            steps {
+                script {
+                    gv.deployApp()
+                }
+            }
+        }               
+    }
+} 

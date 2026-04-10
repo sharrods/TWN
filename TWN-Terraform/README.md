@@ -1,13 +1,8 @@
 # TWN-Terraform
 # Module 12 — Terraform
-### What I Built
-- Provisioned full EKS cluster on AWS using Terraform community modules
-- Created VPC with public and private subnets across multiple availability zones
-- Deployed managed node group with 3 t3.small worker nodes
-- Used terraform-aws-modules/vpc/aws and terraform-aws-modules/eks/aws community modules
-- Connected VPC module outputs directly to EKS module inputs
-- All 62 resources created with single terraform apply
-- Cluster took ~15 minutes to provision
+
+## What I Built
+[fill in after completing module]
 
 ---
 
@@ -97,6 +92,10 @@ terraform destroy
 # Destroy specific resource
 terraform destroy -target aws_instance.my-server
 ```
+
+### Terraform Plan Output
+
+
 
 ---
 
@@ -283,11 +282,6 @@ terraform-learn/
 
 
 ### What I Built
-
-
-
-
-
 - tfvars
 - main.tf populated with additional items
 i # aws_default_route_table.main-rtb will be created
@@ -454,6 +448,18 @@ CONTAINER ID   IMAGE     COMMAND                  CREATED          STATUS       
 ### Files Created
 main.tf
 entry-script.sh
+- create new branch 
+- feature/deploy-to-ec2-default-components
+
+- ❯ git checkout -b feature/provisioners
+Switched to a new branch 'feature/provisioners'
+
+░▒▓    ~/Documents/Techworld-with-nana  on   feature/provisioners *1 ··
+
+
+
+
+
 
 ---
 
@@ -490,7 +496,12 @@ provisioner "file" {
 ---
 
 ## Lessons 16-18 — Modules in Terraform
-
+### What I Built
+- Refactored flat main.tf into reusable modules
+- Created subnet module handling VPC networking components
+- Created webserver module handling EC2 and security group
+- Parameterized everything through tfvars file
+- Connected modules together through outputs and variables
 ### What Modules Are
 - reusable packages of Terraform configuration
 - like functions in programming
@@ -510,7 +521,7 @@ modules/
 ```hcl
 module "webserver" {
   source        = "./modules/webserver"
-  instance_type = "t2.micro"
+  instance_type = "t3.micro"
   region        = "us-east-1"
 }
 ```
@@ -532,220 +543,192 @@ module "vpc" {
 ## Lessons 19-21 — Automate Provisioning EKS with Terraform
 
 ### What I Built
+
 - Provisioned full EKS cluster on AWS using Terraform community modules
-- Created VPC with public and private subnets across multiple availability zones
-- Deployed managed node group with 3 t3.small worker nodes
-- Used terraform-aws-modules/vpc/aws and terraform-aws-modules/eks/aws community modules
-- Connected VPC module outputs directly to EKS module inputs
-- All 62 resources created with single terraform apply
-- Cluster took ~15 minutes to provision
+- Created VPC with public and private subnets across multiple AZs
+- Deployed managed node group with auto-scaling
+- Connected VPC module outputs to EKS module inputs
+- All infrastructure defined as code — no manual console clicks
+
+terraform-learn-eks/
+├── vpc.tf               # VPC module configuration
+├── eks-cluster.tf       # EKS cluster module configuration
+├── terraform.tfvars     # variable values (gitignored)
+└── .terraform/          # downloaded modules (gitignored)
+
+### vpc.tf — VPC Setup Using Community Module
+```hcl
+module "myapp-vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "6.0.1"
+
+  name            = "myapp-vpc"
+  cidr            = var.vpc_cidr_block
+  private_subnets = var.private_subnet_cidr_blocks
+  public_subnets  = var.public_subnet_cidr_blocks
+  azs             = data.aws_availability_zones.azs.names
+
+  enable_nat_gateway   = true
+  single_nat_gateway   = true
+  enable_dns_hostnames = true
+
+  tags = {
+    "kubernetes.io/cluster/myapp-eks-cluster" = "shared"
+  }
+
+  public_subnet_tags = {
+    "kubernetes.io/cluster/myapp-eks-cluster" = "shared"
+    "kubernetes.io/role/elb"                  = 1
+  }
+
+  private_subnet_tags = {
+    "kubernetes.io/cluster/myapp-eks-cluster" = "shared"
+    "kubernetes.io/role/internal-elb"         = 1
+  }
+}
+```
+
+### eks-cluster.tf — EKS Cluster Using Community Module
+```hcl
+module "eks" {
+  source  = "terraform-aws-modules/eks/aws"
+  version = "21.17.1"
+
+  name               = "myapp-eks-cluster"
+  kubernetes_version = "1.33"
+
+  subnet_ids = module.myapp-vpc.private_subnets
+  vpc_id     = module.myapp-vpc.vpc_id
+
+  endpoint_public_access                   = true
+  enable_cluster_creator_admin_permissions = true
+
+  addons = {
+    coredns                = {}
+    eks-pod-identity-agent = { before_compute = true }
+    kube-proxy             = {}
+    vpc-cni                = { before_compute = true }
+  }
+
+  eks_managed_node_groups = {
+    dev = {
+      ami_type       = "AL2023_x86_64_STANDARD"
+      instance_types = ["t3.small"]
+      min_size       = 1
+      max_size       = 3
+      desired_size   = 3
+    }
+  }
+
+  tags = {
+    environment = "development"
+    application = "myapp"
+  }
+}
+```
+
+### terraform.tfvars
+```hcl
+vpc_cidr_block             = "10.0.0.0/16"
+private_subnet_cidr_blocks = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+public_subnet_cidr_blocks  = ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]
+```
+
+### What Each Section Does
+
+#### VPC Module
+- creates VPC, subnets, internet gateway, route tables, NAT gateway automatically
+- public subnets = load balancers live here, accessible from internet
+- private subnets = worker nodes live here, not directly reachable from internet
+- NAT gateway = allows worker nodes in private subnet to pull Docker images
+- single_nat_gateway = one NAT gateway saves cost (~$32/month each)
+- azs = spreads subnets across all AZs in region for high availability
+- kubernetes tags = required so EKS can discover which VPC and subnets to use
+
+#### EKS Module
+- creates control plane, IAM roles, KMS encryption, CloudWatch logs
+- subnet_ids points to private subnets from VPC module output
+- vpc_id references VPC module output
+- addons = K8s system components installed automatically
+    - coredns = internal cluster DNS
+    - kube-proxy = network rules on each node
+    - vpc-cni = pod networking
+    - eks-pod-identity-agent = IAM permissions for pods
+    - before_compute = true means addon installs before worker nodes join
+- managed node group = AWS handles patching and updates of worker nodes
+- enable_cluster_creator_admin_permissions = your AWS user gets kubectl admin access automatically
+
+#### How Modules Connect
+
+module outputs:
+module.myapp-vpc.private_subnets → used by eks module subnet_ids
+module.myapp-vpc.vpc_id          → used by eks module vpc_id
+eks module creates:
+62 resources total across VPC and EKS
+###
+excerpt from terraform apply 
+
+
+Plan: 62 to add, 0 to change, 0 to destroy.
+module.eks.module.eks_managed_node_group["dev"].aws_iam_role.this[0]: Creating...
+module.myapp-vpc.aws_vpc.this[0]: Creating...
+module.eks.aws_iam_role.this[0]: Creating...
+module.eks.aws_cloudwatch_log_group.this[0]: Creating...
+module.eks.aws_cloudwatch_log_group.this[0]: Creation complete after 1s [id=/aws/eks/myapp-eks-cluster/cluster]
+module.eks.module.eks_managed_node_group["dev"].aws_iam_role.this[0]: Creation complete after 1s [id=dev-eks-node-group-20260408231620378900000001]
+module.eks.aws_iam_role.this[0]: Creation complete after 1s [id=myapp-eks-cluster-cluster-20260408231620379100000002]
+module.eks.module.eks_managed_node_group["dev"].aws_iam_role_policy_attachment.this["AmazonEKS_CNI_Policy"]: Creating...
+module.eks.module.eks_managed_node_group["dev"].aws_iam_role_policy_attachment.this["AmazonEKSWorkerNodePolicy"]: Creating...
+module.eks.module.eks_managed_node_group["dev"].aws_iam_role_policy_attachment.this["AmazonEC2ContainerRegistryReadOnly"]: Creating...
+module.eks.aws_iam_role_policy_attachment.this["AmazonEKSClusterPolicy"]: Creating...
+module.eks.module.kms.data.aws_iam_policy_document.this[0]: Reading...
+module.eks.module.kms.data.aws_iam_policy_document.this[0]: Read complete after 0s [id=2998215644]
+module.eks.module.kms.aws_kms_key.this[0]: Creating...
+module.eks.module.eks_managed_node_group["de
+
+
+### Commands
+```bash
+terraform init      # downloads community modules from registry
+terraform plan      # preview 62 resources being created
+terraform apply     # takes 15-20 minutes — EKS control plane is slow
+terraform destroy   # takes 15-20 minutes — destroys in reverse order
+```
+
+### Connect kubectl After Apply
+```bash
+aws eks update-kubeconfig --name myapp-eks-cluster --region us-east-1
+kubectl get nodes
+```
+
+### Why Terraform Over eksctl For EKS
+- eksctl = fast, good for learning, limited customization
+- Terraform = full control, version controlled, reproducible
+- Terraform manages VPC + EKS together as one apply
+- eksctl only manages the cluster, not the surrounding infrastructure
+- in production Terraform is the standard approach
+
+
+
+
+
+❯ terraform state list
+
+░▒▓    ~/Documents/Techworld-with-nana/TWN-Terraform/terraform-learn-eks  on   feature/eks *1 !1 ······················· at 06:04:35 PM  ▓▒░
+❯
 
 
 ---
 
 ## Lessons 22-24 — Complete CI/CD with Terraform
 
+
+
 ### What I Built
-- Full CI/CD pipeline: Jenkins builds image → Terraform provisions EC2 → deploys app via docker-compose
-- Jenkins provisions a fresh EC2 server on every pipeline run using Terraform
-- App deployed via docker-compose with postgres on the new EC2 instance
-- Pipeline waits for EC2 to initialize before deploying
-
-- TWN-Terraform/java-maven-app/
-	├── Jenkinsfile           ← full CI/CD pipeline
-	├── Dockerfile            ← builds java-maven-app image
-	├── server-cmds.sh        ← runs docker-compose on EC2
-	├── docker-compose.yaml   ← starts app + postgres containers
-	├── pom.xml               ← maven build config
-	└── Terraform/
-	├── main.tf           ← provisions VPC, subnet, SG, EC2
-	├── variables.tf      ← input variables
-	└── entry-script.sh   ← installs docker + docker-compose on EC2
-
-### Jenkinsfile
-### Jenkinsfile
-```groovy
-#!/usr/bin/env groovy
-
-pipeline {   
-  agent any
-  tools {
-    maven 'maven-3.9'
-  }
-  environment {
-    IMAGE_NAME = 'sharrods/demo-app:java-maven-2.0'
-  }
-  stages {
-    stage("build app") {
-      steps {
-        script {
-          echo 'building application jar...'
-          sh 'mvn -f TWN-Terraform/java-maven-app/pom.xml clean package'
-        }
-      }
-    }
-    stage("build image") {
-      steps {
-        script {
-          echo 'building docker image...'
-          withCredentials([usernamePassword(credentialsId: 'docker-hub-repo', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-            sh "docker build -t ${IMAGE_NAME} -f TWN-Terraform/java-maven-app/Dockerfile TWN-Terraform/java-maven-app"
-            sh 'echo $PASS | docker login -u $USER --password-stdin'
-            sh "docker push ${IMAGE_NAME}"
-          }
-        }
-      }
-    }
-    stage("provision server") {
-      environment {
-        AWS_ACCESS_KEY_ID     = credentials('jenkins_aws_access_key_id')
-        AWS_SECRET_ACCESS_KEY = credentials('jenkins_aws_secret')
-        TF_VAR_env_prefix     = 'test'
-      }
-      steps {
-        script {
-          dir('TWN-Terraform/java-maven-app/Terraform') {
-            sh "terraform init"
-            sh "terraform apply --auto-approve"
-            EC2_PUBLIC_IP = sh(
-              script: "terraform output ec2_public_ip",
-              returnStdout: true
-            ).trim()
-          }
-        }
-      }
-    }
-    stage("deploy") {
-      environment {
-        DOCKER_CREDS = credentials('docker-hub-repo')
-      }
-      steps {
-        script {
-          echo "waiting for EC2 server to initialize"
-          sleep(time: 90, unit: "SECONDS")
-          echo 'deploying docker image to EC2...'
-          echo "${EC2_PUBLIC_IP}"
-
-          def shellCmd = "bash ./server-cmds.sh ${IMAGE_NAME} ${DOCKER_CREDS_USR} ${DOCKER_CREDS_PSW}"
-          def ec2Instance = "ec2-user@${EC2_PUBLIC_IP}"
-
-          sshagent(['server-ssh-key']) {
-            sh "scp -o StrictHostKeyChecking=no TWN-Terraform/java-maven-app/server-cmds.sh ${ec2Instance}:/home/ec2-user"
-            sh "scp -o StrictHostKeyChecking=no TWN-Terraform/java-maven-app/docker-compose.yaml ${ec2Instance}:/home/ec2-user"
-            sh "ssh -o StrictHostKeyChecking=no ${ec2Instance} ${shellCmd}"
-          }
-        }
-      }
-    }               
-  }
-}
-```
-
-### entry-script.sh — EC2 Bootstrap
-```bash
-#!/bin/bash
-sudo yum update -y && sudo yum install -y docker
-sudo systemctl start docker
-sudo usermod -aG docker ec2-user
-
-# install docker-compose
-sudo curl -SL "https://github.com/docker/compose/releases/download/v2.20.3/docker-compose-linux-x86_64" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
-```
-
-### server-cmds.sh — Remote Deployment Script
-```bash
-#!/usr/bin/env bash
-export IMAGE=$1
-export DOCKER_USER=$2
-export DOCKER_PWD=$3
-echo $DOCKER_PWD | docker login -u $DOCKER_USER --password-stdin
-docker-compose -f docker-compose.yaml up --detach
-echo "success"
-```
-
-### docker-compose.yaml
-```yaml
-services:
-  java-maven-app:
-    image: ${IMAGE}
-    ports:
-      - 8080:8080
-  postgres:
-    image: postgres:16
-    ports:
-      - 5432:5432
-    environment:
-      - POSTGRES_PASSWORD=my-pwd
-```
-
-### Jenkins Credentials Required
-| Credential ID | Type | Purpose |
-|--------------|------|---------|
-| `docker-hub-repo` | Username/Password | DockerHub push and pull |
-| `jenkins_aws_access_key_id` | Secret Text | AWS Access Key for Terraform |
-| `jenkins_aws_secret` | Secret Text | AWS Secret Key for Terraform |
-| `server-ssh-key` | SSH Private Key | SSH into EC2 to deploy |
-
-### Install Terraform Inside Jenkins Container
-```bash
-# SSH into Jenkins droplet
-ssh root@<droplet-ip>
-
-# Enter Jenkins container as root
-docker exec -u 0 -it <container-id> /bin/bash
-
-# Install dependencies
-apt update && apt install -y gpg
-
-# Add HashiCorp repo
-wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
-echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com bookworm main" | tee /etc/apt/sources.list.d/hashicorp.list
-
-# Install terraform
-apt update && apt install terraform -y
-
-# Verify
-terraform --version
-```
-
-### New SSH Key Pair Setup
-- created new SSH key pair for this lesson
-- added private key to Jenkins credentials as `server-ssh-key`
-- Terraform provisions EC2 with the matching public key
-- Jenkins uses `server-ssh-key` credential in sshagent to SSH into EC2
+[fill in as you go]
 
 ### Pipeline Flow
-ode push → GitHub webhook → Jenkins
-↓
-Build JAR with Maven
-↓
-Build Docker image → push to DockerHub
-↓
-Terraform init + apply → provisions EC2 with VPC, SG, subnet
-↓
-entry-script.sh runs on EC2 boot:
-installs docker + docker-compose
-adds ec2-user to docker group
-↓
-Jenkins waits 90 seconds for EC2 to initialize
-↓
-Jenkins SCPs server-cmds.sh + docker-compose.yaml to EC2
-↓
-Jenkins SSHs into EC2 → runs server-cmds.sh
-↓
-server-cmds.sh:
-logs into DockerHub
-runs docker-compose up
-↓
-java-maven-app + postgres containers running on EC2 ✅
-
-
-
-
-
-
-
+[fill in as you go]
 
 ---
 
@@ -784,7 +767,6 @@ terraform {
 - always run terraform plan before apply
 - use consistent naming conventions across resources
 
-
 ---
 
 ## Key Concepts
@@ -798,19 +780,16 @@ terraform {
 - Modules = reusable packages of Terraform config
 - Remote State = store state in S3 for team collaboration
 - TF_VAR_ = environment variable prefix for Terraform variables
-- Terraform provisions infrastructure inside the Jenkins pipeline
-- EC2 IP is dynamic — Terraform output captures it after apply
-- `dir()` in Jenkinsfile changes working directory for Terraform commands
-- entry-script.sh runs once on EC2 boot via user_data
-- server-cmds.sh runs on every deploy via SSH
-- docker-compose manages multiple containers as a stack
-
+- - child module = called by root with module {} block
+- variables.tf in each module = what inputs it accepts
+- never put resource blocks in both root and module — pick one place
+- data source block in module needs its own providers.tf or inherits from root
 
 ---
 
 ## Issues and Resolutions
 
-[Duplicate resource name across .tf files
+[cate resource name across .tf files
 - Error: `Duplicate resource "aws_subnet" configuration`
 - Cause: same resource name declared in both main.tf and main_old.tf
   Terraform reads ALL .tf files in a directory as one module
@@ -885,21 +864,57 @@ terraform {
 - Fix: `#!/bin/bash` — no trailing slash
 - Rule: always double check shebang line — silent failure if wrong
 
-### gpg not installed in Jenkins container
-- Error: `bash: gpg: command not found` when installing Terraform
-- Fix: `apt update && apt install -y gpg` before running HashiCorp GPG command
+### Unsupported attribute on module output
+- Error: `Can't access attributes on a primitive-typed value (string)`
+- Cause: calling .id on a value that was already an ID string
+- Fix: remove the extra .id — if output already returns ID use it directly
 
-### lsb_release not installed in Jenkins container
-- Error: `bash: lsb_release: command not found`
-- Cause: Jenkins container doesn't have lsb-release package
-- Fix: hardcode Debian version instead
-  `echo "deb [...] https://apt.releases.hashicorp.com bookworm main"`
+### Wrong attribute name on AMI output
+- Error: `This object does not have an attribute named "ami_id"`
+- Cause: used .ami_id instead of .id on AMI data source
+- Fix: use data.aws_ami.latest-amazon-linux-image.id
 
-### Wrong Terraform directory in Jenkinsfile
-- Cause: `dir('TWN-Terraform/terraform-learn_1')` pointed at old location
-- Fix: `dir('TWN-Terraform/java-maven-app/Terraform')`
+### Duplicate aws_instance in root and module
+- Cause: aws_instance resource left in root/main.tf after moving to webserver module
+- Fix: remove aws_instance from root/main.tf — it should only live in webserver/main.tf
 
-### Wrong AWS secret credential ID
-- Cause: Jenkins credential ID was `jenkins_aws_secret` not `jenkins-aws_secret_access_key`
-- Fix: match credential ID exactly as named in Jenkins
-  `credentials('jenkins_aws_secret')`
+### Typo in argument name
+- Error: `An argument named "private_subnet_tabs" is not expected`
+- Cause: `tabs` instead of `tags`
+- Fix: `private_subnet_tags`
+
+### Missing closing quote in tag value
+- Error: `Invalid character` on tag line
+- Cause: `"kubernetes.io/role/internal-elb = 1` missing closing quote
+- Fix: `"kubernetes.io/role/internal-elb" = 1`
+
+### Nested .git folder blocking push
+- Cause: cloned Nana's repo into TWN subfolder creating nested git repo
+- Error: `You are not allowed to push code to this project`
+- Fix: `rm -rf <cloned-folder>/.git` then push from TWN root
+- Rule: always remove .git immediately after cloning into existing repo
+
+### S3 Bucket backend failed; Error asking for confirmation
+- Error: `Error asking for confirmation` 
+-  Pre-existing state was found while migrating the previous "local" backend to the
+  newly configured "s3" backend. No existing state was found in the newly
+  configured "s3" backend.
+
+- Added  `-migrate-state  -input=false`  
+	- migrate-state: Automatically moves your local tfstate —> S3 
+	- input=false: Disables all interactive prompts
+	- Error: [31m│[0m [0m[1m[31mError: [0m[0m[1mCan't ask approval for state migration when interactive input is disabled.
+		 [31m│[0m [0m
+		 [31m│[0m [0mPlease remove the "-input=false" option and try again.[0m
+
+- Fix: `terraform init -migrate-state -force-copy -input=false`
+
+
+
+
+
+
+
+bashgit add TWN-Terraform/README.md
+git commit -m "Add Lessons 19-21 EKS with Terraform README"
+git push origin feature/eks

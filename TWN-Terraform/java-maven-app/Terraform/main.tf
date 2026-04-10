@@ -1,13 +1,16 @@
-provider "aws" {
-  region            = "us-east-1"
+terraform {
+  required_version    = ">= 0.12"
+  backend "s3" {
+    bucket            = "myapp-tfstate-sharrod-s3-bucket"
+    key               = "myapp/state.tfstate"
+    region            = "us-east-1"
+  }
 }
 
-variable vpc_cidr_block {}
-variable subnet_cidr_block {}
-variable avail_zone {}
-variable env_prefix {}
-variable my_ip {}
-variable instance_type {}
+provider "aws" {
+  region              = var.region
+}
+
 
 #variable public_key_location {}
 
@@ -67,7 +70,7 @@ resource "aws_security_group" "myapp-sg" {
     from_port           = 22
     to_port             = 22
     protocol            = "tcp"
-    cidr_blocks         = [var.my_ip]
+    cidr_blocks         = [var.my_ip, var.jenkins_ip]
   }
   
   ingress {
@@ -103,10 +106,6 @@ data "aws_ami" "latest-amazon-linux-image" {
   }
 }
 
-output "aws_ami_id" {
-  value = data.aws_ami.latest-amazon-linux-image.id
-}
-
 output "ec2_public_ip" {
   value = aws_instance.myapp-server.public_ip
 }
@@ -130,7 +129,7 @@ resource "aws_instance" "myapp-server" {
   availability_zone       = var.avail_zone
 
   associate_public_ip_address = true 
-  key_name                = "voip-lab-key"
+  key_name                = "myapp-key-pair"
 #  key_name                = aws_key_pair.ssh-key.key_name
 
 #/*  user_data = <<EOF
