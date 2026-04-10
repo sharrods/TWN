@@ -1,8 +1,13 @@
 # TWN-Terraform
 # Module 12 — Terraform
-
-## What I Built
-[fill in after completing module]
+### What I Built
+- Provisioned full EKS cluster on AWS using Terraform community modules
+- Created VPC with public and private subnets across multiple availability zones
+- Deployed managed node group with 3 t3.small worker nodes
+- Used terraform-aws-modules/vpc/aws and terraform-aws-modules/eks/aws community modules
+- Connected VPC module outputs directly to EKS module inputs
+- All 62 resources created with single terraform apply
+- Cluster took ~15 minutes to provision
 
 ---
 
@@ -92,10 +97,6 @@ terraform destroy
 # Destroy specific resource
 terraform destroy -target aws_instance.my-server
 ```
-
-### Terraform Plan Output
-
-
 
 ---
 
@@ -282,6 +283,11 @@ terraform-learn/
 
 
 ### What I Built
+
+
+
+
+
 - tfvars
 - main.tf populated with additional items
 i # aws_default_route_table.main-rtb will be created
@@ -526,23 +532,220 @@ module "vpc" {
 ## Lessons 19-21 — Automate Provisioning EKS with Terraform
 
 ### What I Built
-[fill in as you go]
+- Provisioned full EKS cluster on AWS using Terraform community modules
+- Created VPC with public and private subnets across multiple availability zones
+- Deployed managed node group with 3 t3.small worker nodes
+- Used terraform-aws-modules/vpc/aws and terraform-aws-modules/eks/aws community modules
+- Connected VPC module outputs directly to EKS module inputs
+- All 62 resources created with single terraform apply
+- Cluster took ~15 minutes to provision
 
-### EKS Cluster Config
-[fill in as you go]
-
-### Node Group Config
-[fill in as you go]
 
 ---
 
 ## Lessons 22-24 — Complete CI/CD with Terraform
 
 ### What I Built
-[fill in as you go]
+- Full CI/CD pipeline: Jenkins builds image → Terraform provisions EC2 → deploys app via docker-compose
+- Jenkins provisions a fresh EC2 server on every pipeline run using Terraform
+- App deployed via docker-compose with postgres on the new EC2 instance
+- Pipeline waits for EC2 to initialize before deploying
+
+- TWN-Terraform/java-maven-app/
+	├── Jenkinsfile           ← full CI/CD pipeline
+	├── Dockerfile            ← builds java-maven-app image
+	├── server-cmds.sh        ← runs docker-compose on EC2
+	├── docker-compose.yaml   ← starts app + postgres containers
+	├── pom.xml               ← maven build config
+	└── Terraform/
+	├── main.tf           ← provisions VPC, subnet, SG, EC2
+	├── variables.tf      ← input variables
+	└── entry-script.sh   ← installs docker + docker-compose on EC2
+
+### Jenkinsfile
+### Jenkinsfile
+```groovy
+#!/usr/bin/env groovy
+
+pipeline {   
+  agent any
+  tools {
+    maven 'maven-3.9'
+  }
+  environment {
+    IMAGE_NAME = 'sharrods/demo-app:java-maven-2.0'
+  }
+  stages {
+    stage("build app") {
+      steps {
+        script {
+          echo 'building application jar...'
+          sh 'mvn -f TWN-Terraform/java-maven-app/pom.xml clean package'
+        }
+      }
+    }
+    stage("build image") {
+      steps {
+        script {
+          echo 'building docker image...'
+          withCredentials([usernamePassword(credentialsId: 'docker-hub-repo', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+            sh "docker build -t ${IMAGE_NAME} -f TWN-Terraform/java-maven-app/Dockerfile TWN-Terraform/java-maven-app"
+            sh 'echo $PASS | docker login -u $USER --password-stdin'
+            sh "docker push ${IMAGE_NAME}"
+          }
+        }
+      }
+    }
+    stage("provision server") {
+      environment {
+        AWS_ACCESS_KEY_ID     = credentials('jenkins_aws_access_key_id')
+        AWS_SECRET_ACCESS_KEY = credentials('jenkins_aws_secret')
+        TF_VAR_env_prefix     = 'test'
+      }
+      steps {
+        script {
+          dir('TWN-Terraform/java-maven-app/Terraform') {
+            sh "terraform init"
+            sh "terraform apply --auto-approve"
+            EC2_PUBLIC_IP = sh(
+              script: "terraform output ec2_public_ip",
+              returnStdout: true
+            ).trim()
+          }
+        }
+      }
+    }
+    stage("deploy") {
+      environment {
+        DOCKER_CREDS = credentials('docker-hub-repo')
+      }
+      steps {
+        script {
+          echo "waiting for EC2 server to initialize"
+          sleep(time: 90, unit: "SECONDS")
+          echo 'deploying docker image to EC2...'
+          echo "${EC2_PUBLIC_IP}"
+
+          def shellCmd = "bash ./server-cmds.sh ${IMAGE_NAME} ${DOCKER_CREDS_USR} ${DOCKER_CREDS_PSW}"
+          def ec2Instance = "ec2-user@${EC2_PUBLIC_IP}"
+
+          sshagent(['server-ssh-key']) {
+            sh "scp -o StrictHostKeyChecking=no TWN-Terraform/java-maven-app/server-cmds.sh ${ec2Instance}:/home/ec2-user"
+            sh "scp -o StrictHostKeyChecking=no TWN-Terraform/java-maven-app/docker-compose.yaml ${ec2Instance}:/home/ec2-user"
+            sh "ssh -o StrictHostKeyChecking=no ${ec2Instance} ${shellCmd}"
+          }
+        }
+      }
+    }               
+  }
+}
+```
+
+### entry-script.sh — EC2 Bootstrap
+```bash
+#!/bin/bash
+sudo yum update -y && sudo yum install -y docker
+sudo systemctl start docker
+sudo usermod -aG docker ec2-user
+
+# install docker-compose
+sudo curl -SL "https://github.com/docker/compose/releases/download/v2.20.3/docker-compose-linux-x86_64" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+```
+
+### server-cmds.sh — Remote Deployment Script
+```bash
+#!/usr/bin/env bash
+export IMAGE=$1
+export DOCKER_USER=$2
+export DOCKER_PWD=$3
+echo $DOCKER_PWD | docker login -u $DOCKER_USER --password-stdin
+docker-compose -f docker-compose.yaml up --detach
+echo "success"
+```
+
+### docker-compose.yaml
+```yaml
+services:
+  java-maven-app:
+    image: ${IMAGE}
+    ports:
+      - 8080:8080
+  postgres:
+    image: postgres:16
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_PASSWORD=my-pwd
+```
+
+### Jenkins Credentials Required
+| Credential ID | Type | Purpose |
+|--------------|------|---------|
+| `docker-hub-repo` | Username/Password | DockerHub push and pull |
+| `jenkins_aws_access_key_id` | Secret Text | AWS Access Key for Terraform |
+| `jenkins_aws_secret` | Secret Text | AWS Secret Key for Terraform |
+| `server-ssh-key` | SSH Private Key | SSH into EC2 to deploy |
+
+### Install Terraform Inside Jenkins Container
+```bash
+# SSH into Jenkins droplet
+ssh root@<droplet-ip>
+
+# Enter Jenkins container as root
+docker exec -u 0 -it <container-id> /bin/bash
+
+# Install dependencies
+apt update && apt install -y gpg
+
+# Add HashiCorp repo
+wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com bookworm main" | tee /etc/apt/sources.list.d/hashicorp.list
+
+# Install terraform
+apt update && apt install terraform -y
+
+# Verify
+terraform --version
+```
+
+### New SSH Key Pair Setup
+- created new SSH key pair for this lesson
+- added private key to Jenkins credentials as `server-ssh-key`
+- Terraform provisions EC2 with the matching public key
+- Jenkins uses `server-ssh-key` credential in sshagent to SSH into EC2
 
 ### Pipeline Flow
-[fill in as you go]
+ode push → GitHub webhook → Jenkins
+↓
+Build JAR with Maven
+↓
+Build Docker image → push to DockerHub
+↓
+Terraform init + apply → provisions EC2 with VPC, SG, subnet
+↓
+entry-script.sh runs on EC2 boot:
+installs docker + docker-compose
+adds ec2-user to docker group
+↓
+Jenkins waits 90 seconds for EC2 to initialize
+↓
+Jenkins SCPs server-cmds.sh + docker-compose.yaml to EC2
+↓
+Jenkins SSHs into EC2 → runs server-cmds.sh
+↓
+server-cmds.sh:
+logs into DockerHub
+runs docker-compose up
+↓
+java-maven-app + postgres containers running on EC2 ✅
+
+
+
+
+
+
+
 
 ---
 
@@ -581,6 +784,7 @@ terraform {
 - always run terraform plan before apply
 - use consistent naming conventions across resources
 
+
 ---
 
 ## Key Concepts
@@ -594,12 +798,19 @@ terraform {
 - Modules = reusable packages of Terraform config
 - Remote State = store state in S3 for team collaboration
 - TF_VAR_ = environment variable prefix for Terraform variables
+- Terraform provisions infrastructure inside the Jenkins pipeline
+- EC2 IP is dynamic — Terraform output captures it after apply
+- `dir()` in Jenkinsfile changes working directory for Terraform commands
+- entry-script.sh runs once on EC2 boot via user_data
+- server-cmds.sh runs on every deploy via SSH
+- docker-compose manages multiple containers as a stack
+
 
 ---
 
 ## Issues and Resolutions
 
-[cate resource name across .tf files
+[Duplicate resource name across .tf files
 - Error: `Duplicate resource "aws_subnet" configuration`
 - Cause: same resource name declared in both main.tf and main_old.tf
   Terraform reads ALL .tf files in a directory as one module
@@ -674,4 +885,21 @@ terraform {
 - Fix: `#!/bin/bash` — no trailing slash
 - Rule: always double check shebang line — silent failure if wrong
 
+### gpg not installed in Jenkins container
+- Error: `bash: gpg: command not found` when installing Terraform
+- Fix: `apt update && apt install -y gpg` before running HashiCorp GPG command
 
+### lsb_release not installed in Jenkins container
+- Error: `bash: lsb_release: command not found`
+- Cause: Jenkins container doesn't have lsb-release package
+- Fix: hardcode Debian version instead
+  `echo "deb [...] https://apt.releases.hashicorp.com bookworm main"`
+
+### Wrong Terraform directory in Jenkinsfile
+- Cause: `dir('TWN-Terraform/terraform-learn_1')` pointed at old location
+- Fix: `dir('TWN-Terraform/java-maven-app/Terraform')`
+
+### Wrong AWS secret credential ID
+- Cause: Jenkins credential ID was `jenkins_aws_secret` not `jenkins-aws_secret_access_key`
+- Fix: match credential ID exactly as named in Jenkins
+  `credentials('jenkins_aws_secret')`
