@@ -119,3 +119,4 @@ bin/
 # Terraform
 ##################################################
 *.terraform*
+TWN-Python_Basics/__pycache__/
