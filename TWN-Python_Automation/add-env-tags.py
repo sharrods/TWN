@@ -1,7 +1,7 @@
 import boto3
 
-ec2_client_frankfurt = boto3.client('ec2', region_name="eu-central-1")
-ec2_resource_frankfurt = boto3.resource('ec2', region_name="eu-central-1")
+ec2_client_frankfurt = boto3.client('ec2', region_name="us-east-1")
+ec2_resource_frankfurt = boto3.resource('ec2', region_name="us-east-1")
 
 ec2_client_paris = boto3.client('ec2', region_name="eu-west-3")
 ec2_resource_paris = boto3.resource('ec2', region_name="eu-west-3")
