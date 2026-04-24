@@ -31,13 +31,15 @@
     - name: Copy/Unpack nodejs file to remote server 
       unarchive:
         src: /Users/sharrods/Documents/Techworld-with-nana/TWN-Ansible/nodejs-app/nodejs-app-1.0.0.tgz
-        dest: /home/ec2-user/
+        dest: /home/sharrod/
+      register: user_creation_result
+    - debug: msg={{user_creation_result}}
     - name: Install dependencies
       npm:
-        path: /home/ec2-user/package
+        path: /home/sharrod/package
     - name: Start the application
       command:
-        chdir: /home/ec2-user/package/app
+        chdir: /home/sharrod/package/app
         cmd: node server
       async: 1000
       poll: 0
