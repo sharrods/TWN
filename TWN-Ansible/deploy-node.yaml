@@ -11,7 +11,6 @@
           - nodejs
           - npm
         state: present
-
 - name: Create new user for node app
   hosts: ec2-3-91-209-227.compute-1.amazonaws.com
   become: True
@@ -21,8 +20,6 @@
         name: sharrod
         comment: Create sharrod
         group: wheel
-
-
 - name: Deploy nodejs app
   hosts: ec2-3-91-209-227.compute-1.amazonaws.com
   become: True
