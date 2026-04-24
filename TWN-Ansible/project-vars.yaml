@@ -1,3 +1,4 @@
 version: 1.0.0 
 location: /Users/sharrods/Documents/Techworld-with-nana/TWN-Ansible/nodejs-app/ 
 linux_name: sharrod
+destination: /home/sharrod
