@@ -17,7 +17,7 @@
         url: https://download.sonatype.com/nexus/3/latest-linux-x86_64.tar.gz
         dest: /opt/
       register: download_result
-    - debug: msg={{download_result.dest}}
+    - debug: msg={{download_result}}
    # - name: Untar nexus installer
       #unarchive:
         #src: /opt/nexus-3.91.1-04-linux-x86_64.tar.gz
