@@ -1,0 +1,27 @@
+---
+- name: Install node and npm
+  hosts: ec2-3-91-209-227.compute-1.amazonaws.com
+  become: yes
+  tasks:
+    - name: Update Cache
+      yum: update_cache=yes 
+    - name: Install nodejs and npm
+      yum: 
+        name:
+          - nodejs
+          - npm
+        state: present
+
+- name: Deploy nodejs app
+  hosts: ec2-3-91-209-227.compute-1.amazonaws.com
+  tasks:
+    - name: Copy nodejs folder to a server
+      copy:
+        src: /Users/sharrods/Documents/Techworld-with-nana/TWN-Ansible/nodejs-app/nodejs-app-1.0.0.tgz
+        dest: /home/ec2-user
+    - name: Unpack the nodejs file
+      unarchive:
+        src: /home/ec2-user/nodejs-app-1.0.0.tgz
+        dest: /home/ec2-user/
+        remote_src: yes
+
