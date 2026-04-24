@@ -19,3 +19,18 @@
       unarchive:
         src: /Users/sharrods/Documents/Techworld-with-nana/TWN-Ansible/nodejs-app/nodejs-app-1.0.0.tgz
         dest: /home/ec2-user/
+    - name: Install dependencies
+      npm:
+        path: /home/ec2-user/package
+    - name: Start the application
+      command:
+        chdir: /home/ec2-user/package/app
+        cmd: node server
+      async: 1000
+      poll: 0
+    - name: Ensure app is running
+      shell: ps aux | grep node
+      register: app_status
+    - debug: msg={{app_status}}
+
+      
