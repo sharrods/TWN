@@ -12,8 +12,21 @@
           - npm
         state: present
 
+- name: Create new user for node app
+  hosts: ec2-3-91-209-227.compute-1.amazonaws.com
+  become: True
+  tasks:
+    - name: Create linux user
+      user:
+        name: sharrod
+        comment: Create sharrod
+        group: wheel
+
+
 - name: Deploy nodejs app
   hosts: ec2-3-91-209-227.compute-1.amazonaws.com
+  become: True
+  become_user: sharrod
   tasks:
     - name: Copy/Unpack nodejs file to remote server 
       unarchive:
