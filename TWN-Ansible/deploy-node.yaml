@@ -14,18 +14,20 @@
 - name: Create new user for node app
   hosts: ec2-3-91-209-227.compute-1.amazonaws.com
   become: True
+  vars_files:
+    project-vars
   tasks:
     - name: Create linux user
       user:
-        name: "{{name}}"
+        name: "{{linux_name}}"
         comment: Create sharrod
         group: wheel
 - name: Deploy nodejs app
   hosts: ec2-3-91-209-227.compute-1.amazonaws.com
   become: True
-  become_user: "{{name}}"
-  vars:
-    destination: /home/{{name}}
+  become_user: "{{linux_name}}"
+  vars_files:
+    project-vars
 
 
   tasks:
