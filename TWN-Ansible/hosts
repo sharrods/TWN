@@ -1,6 +1,7 @@
 [webserver] 
 157.245.242.146 ansible_python_interpreter=/usr/bin/python3
 157.230.180.203 ansible_python_interpreter=/usr/bin/python3
+134.209.123.145 ansible_python_interpreter=/usr/bin/python3
 
 [webserver:vars]
 ansible_ssh_private_key_file=~/.ssh/digitalocean
