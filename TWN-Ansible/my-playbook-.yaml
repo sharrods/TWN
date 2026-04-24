@@ -1,0 +1,15 @@
+---
+- name: Configure nginx web server
+  hosts: webserver
+  tasks:
+  - name: Install nginx server
+    apt:
+      name: nginx=1.28.3-2ubuntu1
+      state: present
+      update_cache: yes
+  - name: Start nginx server
+    service:
+      name: nginx
+      state: started
+      enabled: yes
+      

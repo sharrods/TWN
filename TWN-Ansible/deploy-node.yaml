@@ -17,24 +17,28 @@
   tasks:
     - name: Create linux user
       user:
-        name: sharrod
+        name: "{{name}}"
         comment: Create sharrod
         group: wheel
 - name: Deploy nodejs app
   hosts: ec2-3-91-209-227.compute-1.amazonaws.com
   become: True
-  become_user: sharrod
+  become_user: "{{name}}"
+  vars:
+    destination: /home/{{name}}
+
+
   tasks:
     - name: Copy/Unpack nodejs file to remote server 
       unarchive:
-        src: /Users/sharrods/Documents/Techworld-with-nana/TWN-Ansible/nodejs-app/nodejs-app-1.0.0.tgz
-        dest: /home/sharrod/
+        src: "{{location}}/nodejs-app-{{version}}.tgz"
+        dest: "{{destination}}"
     - name: Install dependencies
       npm:
-        path: /home/sharrod/package
+        path: "{{destination}}/package"
     - name: Start the application
       command:
-        chdir: /home/sharrod/package/app
+        chdir: "{{destination}}/package/app"
         cmd: node server
       async: 1000
       poll: 0

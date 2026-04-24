@@ -150,8 +150,10 @@ ansible_user=ec2-user
 ---
 
 ## Lesson 10 — Ansible Loops
-- Added register to show status 
-TASK [debug] *******************************************************************************************************************************************************************************************************************************
+
+- Added register to show status
+  TASK [debug] ************\*\*************\*\*************\*\*************\*\*************\*\*************\*\*************\*\*************\*\*\*************\*\*************\*\*************\*\*************\*\*************\*\*************\*\*************\*\*************
+
 ```
 ok: [ec2-3-91-209-227.compute-1.amazonaws.com] => {
     "msg": {
@@ -196,8 +198,6 @@ PLAY RECAP *********************************************************************
 ec2-3-91-209-227.compute-1.amazonaws.com : ok=9    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
 ```
 
-
-
 ---
 
 ## Lesson 11 — Project: Deploy Application
@@ -233,14 +233,18 @@ ec2-3-91-209-227.compute-1.amazonaws.com : ok=9    changed=2    unreachable=0   
   the `: host` in the error was Ansible treating the group name as part of the service name
 - Fix: match `hosts:` in playbook to the group name in inventory file
 - Rule: group name in playbook must exactly match group name in hosts file
+
 ### apt module fails on EC2 Amazon Linux
+
 - Error: `No such file or directory: b'update'`
 - Cause: used `apt` module on Amazon Linux EC2
   Amazon Linux uses yum/dnf not apt
   apt doesn't exist on the server
 - Fix: use `yum` module for Amazon Linux EC2
 - Rule: apt = Ubuntu/Debian, yum = Amazon Linux/RHEL
+
 ### yum module unsupported parameters
+
 - Error: `Unsupported parameters for (ansible.legacy.dnf) module: cache_valid_time, force_yum_get`
 - Cause: copied apt syntax into yum module
   cache_valid_time and force_yum_get are apt-only parameters
@@ -248,7 +252,9 @@ ec2-3-91-209-227.compute-1.amazonaws.com : ok=9    changed=2    unreachable=0   
 - Fix: remove apt-only parameters, use only yum supported params
   change `pkg:` to `name:` for package list
 - Rule: apt and yum have different parameter names — check docs for each
+
 ### Playbook hosts group not found — service error misleading
+
 - Error: `Could not find the requested service nginx: host`
 - Cause: playbook had `hosts: webserver` but inventory group was `[droplet]`
   Ansible couldn't find the group so tried to use it as a hostname
@@ -257,6 +263,7 @@ ec2-3-91-209-227.compute-1.amazonaws.com : ok=9    changed=2    unreachable=0   
 - Rule: group name in playbook must exactly match group name in hosts file
 
 ### apt module fails on EC2 Amazon Linux
+
 - Error: `No such file or directory: b'update'`
 - Cause: used `apt` module on Amazon Linux EC2
   Amazon Linux uses yum/dnf not apt
@@ -265,6 +272,7 @@ ec2-3-91-209-227.compute-1.amazonaws.com : ok=9    changed=2    unreachable=0   
 - Rule: apt = Ubuntu/Debian, yum = Amazon Linux/RHEL
 
 ### yum module unsupported parameters
+
 - Error: `Unsupported parameters for (ansible.legacy.dnf) module: cache_valid_time, force_yum_get`
 - Cause: copied apt syntax into yum module
   cache_valid_time and force_yum_get are apt-only parameters
@@ -274,6 +282,7 @@ ec2-3-91-209-227.compute-1.amazonaws.com : ok=9    changed=2    unreachable=0   
 - Rule: apt and yum have different parameter names — check docs for each
 
 ### Task requires root — permission denied
+
 - Error: `This command has to be run under the root user`
 - Cause: connecting as ec2-user which doesn't have root privileges
   yum install requires root
@@ -281,3 +290,13 @@ ec2-3-91-209-227.compute-1.amazonaws.com : ok=9    changed=2    unreachable=0   
   `become: yes` at play level applies to all tasks in that play
   `become: yes` at task level applies to one task only
 - Rule: any task that installs software or modifies system files needs become: yes
+
+### vars must be dictionary not list
+
+- Error: `Vars in a Play must be specified as a dictionary`
+- Cause: used list syntax with dashes for vars block
+  older Ansible versions accepted both formats
+  newer versions enforce dictionary syntax only
+- Wrong: `vars:` with `- key: value` (list)
+- Fixed: `vars:` with `key: value` (dictionary, no dashes)
+- Rule: vars in a play are always key-value pairs, never a list
