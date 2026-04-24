@@ -29,8 +29,6 @@
       unarchive:
         src: /Users/sharrods/Documents/Techworld-with-nana/TWN-Ansible/nodejs-app/nodejs-app-1.0.0.tgz
         dest: /home/sharrod/
-      register: user_creation_result
-    - debug: msg={{user_creation_result}}
     - name: Install dependencies
       npm:
         path: /home/sharrod/package
