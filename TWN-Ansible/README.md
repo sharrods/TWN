@@ -152,7 +152,7 @@ ansible_user=ec2-user
 ## Lesson 10 — Ansible Loops
 
 - Added register to show status
-  TASK [debug] ************\*\*************\*\*************\*\*************\*\*************\*\*************\*\*************\*\*************\*\*\*************\*\*************\*\*************\*\*************\*\*************\*\*************\*\*************\*\*************
+  TASK [debug] \***\*\*\*\*\*\*\***\*\*\***\*\*\*\*\*\*\***\*\*\***\*\*\*\*\*\*\***\*\*\***\*\*\*\*\*\*\***\*\*\***\*\*\*\*\*\*\***\*\*\***\*\*\*\*\*\*\***\*\*\***\*\*\*\*\*\*\***\*\*\***\*\*\*\*\*\*\***\*\*\*\***\*\*\*\*\*\*\***\*\*\***\*\*\*\*\*\*\***\*\*\***\*\*\*\*\*\*\***\*\*\***\*\*\*\*\*\*\***\*\*\***\*\*\*\*\*\*\***\*\*\***\*\*\*\*\*\*\***\*\*\***\*\*\*\*\*\*\***\*\*\***\*\*\*\*\*\*\***
 
 ```
 ok: [ec2-3-91-209-227.compute-1.amazonaws.com] => {
@@ -203,6 +203,269 @@ ec2-3-91-209-227.compute-1.amazonaws.com : ok=9    changed=2    unreachable=0   
 ## Lesson 11 — Project: Deploy Application
 
 [fill in after completing]
+
+---
+
+## Lesson 13 — Ansible stat Module and Conditionals
+
+### What I Built
+
+- used stat module to check if a file or directory exists
+- registered the result to a variable
+- used `when` conditional to skip task if directory already exists
+- used find module output to get dynamic file path for rename
+
+### Pattern — Check Before Acting
+
+```yaml
+# Step 1 — check if path exists
+- name: Check if nexus folder already exists
+  stat:
+    path: /opt/nexus
+  register: stat_result
+
+# Step 2 — only run if it doesn't exist
+- name: Rename nexus folder
+  shell: mv {{find_result.files[0].path}} /opt/nexus
+  when: not stat_result.stat.exists
+```
+
+### What Each Part Does
+
+- `stat` module = checks if file or directory exists on remote server
+- `register: stat_result` = captures the output into a variable
+- `stat_result.stat.exists` = boolean — true if path exists, false if not
+- `when: not stat_result.stat.exists` = only runs task when folder does NOT exist
+- `find_result.files[0].path` = dynamic path from find module output
+  first result from find — the actual nexus versioned folder name
+
+### Why This Matters
+
+- idempotent = running playbook twice won't fail trying to rename again
+- without the check — second run would fail because nexus folder already exists
+- stat + when = standard Ansible pattern for conditional task execution
+
+### Issues and Resolutions
+
+#### stat module does not support raw params
+
+- Error: `Action 'ansible.builtin.stat' does not support raw params`
+- Cause: missing space after `path:` — YAML parsed it as raw param not key-value
+- Wrong: `path:/opt/nexus`
+- Fixed: `path: /opt/nexus`
+- Rule: always space after colon in YAML key-value pairs
+
+---
+
+## Lessons 14-15 — Project: Deploy Nexus
+
+### What I Built
+
+- installed Java and net-tools on DigitalOcean droplet using Ansible
+- downloaded and unpacked Nexus Repository Manager automatically
+- created dedicated nexus user and group
+- set file ownership on nexus folders
+- configured and started Nexus as nexus user
+- verified Nexus running with ps and netstat
+
+### Project Structure
+
+```
+TWN-Ansible/
+├── hosts                 ← inventory file
+├── ansible.cfg           ← host key checking disabled
+└── deploy-nexus.yaml     ← full nexus deployment playbook
+```
+
+### Final Playbook
+
+```yaml
+---
+- name: Install java and net-tools
+  hosts: nexus_server
+  become: yes
+  tasks:
+    - name: Update apt repo and cache
+      apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
+    - name: Install Java 8
+      apt: name=openjdk-8-jre-headless
+    - name: Install net-tools
+      apt: name=net-tools
+
+- name: Download and unpack Nexus installer
+  hosts: nexus_server
+  become: yes
+  tasks:
+    - name: Check nexus folder stats
+      stat:
+        path: /opt/nexus
+      register: stat_result
+    - name: Download Nexus
+      get_url:
+        url: https://download.sonatype.com/nexus/3/latest-linux-x86_64.tar.gz
+        dest: /opt/
+      register: download_result
+      when: not stat_result.stat.exists
+    - name: Untar Nexus installer
+      unarchive:
+        src: "{{download_result.dest}}"
+        dest: /opt/
+        remote_src: yes
+      when: not stat_result.stat.exists
+    - name: Find nexus folder
+      find:
+        paths: /opt
+        pattern: "nexus-*"
+        file_type: directory
+      register: find_result
+    - name: Rename nexus folder
+      shell: mv {{find_result.files[0].path}} /opt/nexus
+      when: not stat_result.stat.exists
+
+- name: Create nexus user to own nexus folder
+  hosts: nexus_server
+  become: yes
+  tasks:
+    - name: Ensure group nexus exists
+      group:
+        name: nexus
+        state: present
+    - name: Create nexus user
+      user:
+        name: nexus
+        group: nexus
+    - name: Make nexus user owner of nexus folder
+      file:
+        path: /opt/nexus
+        state: directory
+        owner: nexus
+        group: nexus
+        recurse: yes
+    - name: Make nexus user owner of sonatype-work folder
+      file:
+        path: /opt/sonatype-work
+        state: directory
+        owner: nexus
+        group: nexus
+        recurse: yes
+
+- name: Start nexus with nexus user
+  hosts: nexus_server
+  become: True
+  become_user: nexus
+  tasks:
+    - name: Create nexus.rc file
+      file:
+        path: /opt/nexus/bin/nexus.rc
+        state: touch
+        owner: nexus
+        group: nexus
+    - name: Set run_as_user nexus
+      lineinfile:
+        path: /opt/nexus/bin/nexus.rc
+        regexp: '^#run_as_user=""'
+        line: run_as_user="nexus"
+    - name: Start nexus
+      command: /opt/nexus/bin/nexus start
+
+- name: Verify nexus running
+  hosts: nexus_server
+  tasks:
+    - name: Check with ps
+      shell: ps aux | grep nexus
+      register: app_status
+    - debug: msg={{app_status.stdout_lines}}
+    - name: Wait one minute
+      pause:
+        minutes: 1
+    - name: Check with netstat
+      shell: netstat -plnt
+      register: app_status
+    - debug: msg={{app_status.stdout_lines}}
+```
+
+### What Each Play Does
+
+#### Play 1 — Install Java and net-tools
+
+- `apt update_cache` = refresh package list before installing
+- `force_apt_get` = use apt-get not apt for better automation support
+- `cache_valid_time=3600` = don't re-update if cache refreshed within last hour
+- Java required for Nexus to run
+- net-tools required for netstat verification at end
+
+#### Play 2 — Download and Unpack
+
+- `stat` module = checks if /opt/nexus already exists before downloading
+- `when: not stat_result.stat.exists` = skip download and untar if already done
+- `get_url` = downloads from URL to remote server directly
+- `register: download_result` = captures download path for unarchive
+- `find` = locates the versioned nexus folder (nexus-3.x.x)
+- `shell mv` = renames versioned folder to /opt/nexus
+
+#### Play 3 — Create nexus user
+
+- dedicated user and group for security — nexus should not run as root
+- `recurse: yes` = applies ownership to all files inside folder
+
+#### Play 4 — Start Nexus
+
+- `become_user: nexus` = run start command as nexus user not root
+- `file state: touch` = creates nexus.rc if it doesn't exist
+  newer Nexus versions (3.91+) don't ship with nexus.rc
+- `lineinfile` = sets run_as_user in nexus.rc config file
+
+#### Play 5 — Verify
+
+- `ps aux | grep nexus` = confirms nexus process is running
+- `pause: minutes: 1` = waits for Nexus to fully initialize
+- `netstat -plnt` = confirms Nexus is listening on port 8081
+
+### Key Modules Used
+
+- `stat` = check if file/directory exists
+- `get_url` = download file from URL to remote server
+- `unarchive` = extract archive on remote server
+- `find` = search for files/directories matching pattern
+- `lineinfile` = add or modify a specific line in a file
+- `file` = manage files and directories (create, ownership, permissions)
+- `group` = manage Linux groups
+- `user` = manage Linux users
+- `pause` = wait before continuing
+- `debug` = print variable output
+
+### Issues and Resolutions
+
+#### yum used on Ubuntu droplet
+
+- Error: `Could not detect which major revision of dnf is in use`
+- Cause: used yum module on Ubuntu — Ubuntu uses apt not yum
+- Fix: use `apt` module for DigitalOcean Ubuntu droplets
+- Rule: apt = Ubuntu/Debian, yum = Amazon Linux/RHEL
+
+#### nexus.rc does not exist in newer Nexus versions
+
+- Error: `Destination /opt/nexus/bin/nexus.rc does not exist`
+- Cause: Nexus 3.91+ removed nexus.rc file
+  older versions used it to set run_as_user
+- Fix: create the file first with `file: state: touch` then write to it
+
+#### stat_result skipped tasks leaving nexus incomplete
+
+- Cause: /opt/nexus existed from previous failed run
+  stat said it exists so download and untar were skipped
+  but folder was empty or incomplete
+- Fix: remove incomplete folder then rerun
+
+```bash
+  rm -rf /opt/nexus /opt/nexus-* /opt/sonatype-work /opt/*.tar.gz
+```
+
+#### hosts group not found — all plays skipped
+
+- Error: `Could not match supplied host pattern, ignoring: nexus_server`
+- Cause: playbook used `nexus_server` group but hosts file had `[webserver]`
+- Fix: add `[nexus_server]` group to hosts file with the correct IP
 
 ---
 
@@ -300,3 +563,31 @@ ec2-3-91-209-227.compute-1.amazonaws.com : ok=9    changed=2    unreachable=0   
 - Wrong: `vars:` with `- key: value` (list)
 - Fixed: `vars:` with `key: value` (dictionary, no dashes)
 - Rule: vars in a play are always key-value pairs, never a list
+
+### YAML parsing error — indentation mismatch
+
+- Error: `While parsing a block mapping did not find expected key`
+- Cause: task dash `-` had 3 spaces instead of 4
+  YAML is strict about indentation — one space off breaks parsing
+- Fix: ensure all task dashes align at 4 spaces
+- Rule: all tasks in a play must have consistent indentation
+
+### Module indented incorrectly under task name
+
+- Error: YAML parsing fails or module not recognized
+- Cause: module name indented too far — appeared to be under `name:` not at same level
+- Wrong:
+
+```yaml
+  - name: Untar nexus installer
+        unarchive:
+```
+
+- Fixed:
+
+```yaml
+- name: Untar nexus installer
+  unarchive:
+```
+
+- Rule: module name must align with `name:` — both at same indentation level
