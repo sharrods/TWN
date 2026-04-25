@@ -3,9 +3,18 @@
 157.230.180.203 ansible_python_interpreter=/usr/bin/python3
 134.209.123.145 ansible_python_interpreter=/usr/bin/python3
 
+
 [webserver:vars]
 ansible_ssh_private_key_file=~/.ssh/digitalocean
 ansible_user=root
+
+[nexus_server]
+134.209.123.145 ansible_python_interpreter=/usr/bin/python3
+
+[nexus_server:vars]
+ansible_ssh_private_key_file=~/.ssh/digitalocean
+ansible_user=root
+
 
 [ec2]
 ec2-3-91-209-227.compute-1.amazonaws.com ansible_python_interpreter=/usr/bin/python3
