@@ -122,12 +122,13 @@ resource "aws_instance" "myapp-server-one" {
   tags = {
     Name: "${var.env_prefix}-server-1"
   }
+}
 
-  provisioner "local-exec"{
+resource "null_resource" "configure_server" {
+  provisioner "local-exec" {
     working_dir = "/Users/sharrods/Documents/Techworld-with-nana/TWN-Ansible/ansible-projects"
     command = "ansible-playbook --inventory ${self.public_ip}, --private-key ${var.ssh_key_private} --vault-password-file ${var.vault_password_file} --user ec2-user deploy-docker-ec2-user.yaml"
   }
-
 }
 
 /*resource "aws_instance" "myapp-server-two" {
