@@ -1,6 +1,6 @@
 ---
 - name: Install Docker
-  hosts: all
+  hosts: docker_server
   become: yes
   tasks:
     - name: Install Docker
@@ -14,7 +14,7 @@
         state: started
 
 - name: Install Docker-compose
-  hosts: all
+  hosts: docker_server
   tasks:
     - name: Create docker-compose directory
       file:
@@ -30,7 +30,7 @@
         mode: +x
 
 - name: Add ec2-user to docker group
-  hosts: all
+  hosts: docker_server
   become: yes
   tasks: 
     - name: Add ec2-user to docker group
@@ -44,15 +44,15 @@
 - name: Start docker containers
   hosts: docker_server
   vars_files:
-    - project-vars
+    - project-vars.yaml
   tasks:
     - name: Copy docker compose 
       copy:
-        src: /Users/nana/bootcamp-java-mysql-project/docker-compose-full.yaml
+        src: /Users/sharrods/Documents/Techworld-with-nana/TWN-Ansible/bootcamp-java-mysql-project/docker-compose-full.yaml
         dest: /home/ec2-user/docker-compose.yaml
-      docker_login:
-        username: nanatwn
     - name: Docker login
+      docker_login:
+        username: sharrods 
         password: "{{docker_password}}"
     - name: Start containers from compose
       community.docker.docker_compose_v2:

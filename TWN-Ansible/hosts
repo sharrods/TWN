@@ -11,6 +11,14 @@ ansible_user=root
 [nexus_server]
 134.209.123.145 ansible_python_interpreter=/usr/bin/python3
 
+[docker_server]
+13.219.231.126 ansible_python_interpreter=/usr/bin/python3
+#44.204.255.141 ansible_python_interpreter=/usr/bin/python3
+
+[docker_server:vars]
+ansible_user=ec2-user
+ansible_ssh_private_key_file=~/.ssh/multi-cloud-key
+
 [nexus_server:vars]
 ansible_ssh_private_key_file=~/.ssh/digitalocean
 ansible_user=root

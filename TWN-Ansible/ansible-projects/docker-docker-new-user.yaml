@@ -1,6 +1,6 @@
 ---
 - name: Wait for SSH connection
-  hosts: all
+  hosts: docker_server
   gather_facts: False
   tasks:
     - name: Ensure SSH port open
@@ -16,7 +16,7 @@
 
 
 - name: Install Docker
-  hosts: all
+  hosts: docker_server
   become: yes
   tasks:
     - name: Install Docker
@@ -30,18 +30,18 @@
         state: started
 
 - name: Create new linux user
-  hosts: all
+  hosts: docker_server
   become: yes
   tasks: 
     - name: Create new linux user
       user:
-        name: nana
+        name: sharrod
         groups: adm,docker
 
 - name: Install Docker-compose
-  hosts: all
+  hosts: docker_server
   become: yes
-  become_user: nana
+  become_user: sharrod
   tasks:
     - name: Create docker-compose directory
       file:
@@ -57,20 +57,20 @@
         mode: +x
 
 - name: Start docker containers
-  hosts: all
+  hosts: docker_server
   become: yes
-  become_user: nana
+  become_user: sharrod
   vars_files:
     - project-vars
   tasks:
     - name: Copy docker compose 
       copy:
-        src: /Users/nana/bootcamp-java-mysql-project/docker-compose-full.yaml
-        dest: /home/nana/docker-compose.yaml
+        src: /Users/sharrods/Documents/Techworld-with-nana/TWN-Ansible/bootcamp-java-mysql-project/docker-compose-full.yaml
+        dest: /home/sharrod/docker-compose.yaml
     - name: Docker login
       docker_login:
-        username: nanatwn
+        username: sharrods
         password: "{{docker_password}}"
     - name: Start containers from compose
       community.docker.docker_compose_v2:
-        project_src: /home/nana
+        project_src: /home/sharrod

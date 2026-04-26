@@ -434,6 +434,27 @@ TWN-Ansible/
 - `pause` = wait before continuing
 - `debug` = print variable output
 
+```
+- Install Docker
+❯ ansible-playbook ansible-projects/deploy-docker.yaml
+
+PLAY [Install Docker] **********************************************************************************************************************************************************************************************************************
+
+TASK [Gathering Facts] *********************************************************************************************************************************************************************************************************************
+ok: [3.238.8.40]
+ok: [44.204.255.141]
+
+TASK [Install Docker] **********************************************************************************************************************************************************************************************************************
+changed: [44.204.255.141]
+changed: [3.238.8.40]
+
+PLAY RECAP *********************************************************************************************************************************************************************************************************************************
+3.238.8.40                 : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+44.204.255.141             : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+```
+
+- Install docker compose
+
 ### Issues and Resolutions
 
 #### yum used on Ubuntu droplet
@@ -591,3 +612,17 @@ TWN-Ansible/
 ```
 
 - Rule: module name must align with `name:` — both at same indentation level
+
+### Protecting sensitive variables with ansible-vault
+
+- never put passwords in plain text vars files
+- use ansible-vault to encrypt vars files
+- create: `ansible-vault create project-vars.yaml`
+- edit: `ansible-vault edit project-vars.yaml`
+- run playbook: `ansible-playbook deploy.yaml --ask-vault-pass`
+- encrypted file is safe to commit to git
+### version attribute obsolete in docker-compose
+- Warning: `the attribute version is obsolete, it will be ignored`
+- Cause: newer versions of docker-compose deprecated the version field
+- Fix: remove `version:` line from top of docker-compose.yaml
+- Rule: modern docker-compose files don't need a version field

@@ -1,1 +1,33 @@
-X.X.X.X ansible_ssh_private_key_file=~/.ssh/id_rsa ansible_user=root
+[webserver] 
+157.245.242.146 ansible_python_interpreter=/usr/bin/python3
+157.230.180.203 ansible_python_interpreter=/usr/bin/python3
+134.209.123.145 ansible_python_interpreter=/usr/bin/python3
+
+
+[webserver:vars]
+ansible_ssh_private_key_file=~/.ssh/digitalocean
+ansible_user=root
+
+[nexus_server]
+134.209.123.145 ansible_python_interpreter=/usr/bin/python3
+
+[docker_server]
+3.238.8.40 ansible_python_interpreter=/usr/bin/python3
+44.204.255.141 ansible_python_interpreter=/usr/bin/python3
+
+[docker_server:vars]
+ansible_user=ec2-user
+ansible_ssh_private_key_file=~/.ssh/multi-cloud-key
+
+[nexus_server:vars]
+ansible_ssh_private_key_file=~/.ssh/digitalocean
+ansible_user=root
+
+
+[ec2]
+ec2-3-91-209-227.compute-1.amazonaws.com ansible_python_interpreter=/usr/bin/python3
+#ec2-44-199-249-34.compute-1.amazonaws.com ansible_python_interpreter=/usr/bin/python3
+
+[ec2:vars]
+ansible_ssh_private_key_file=~/.ssh/multi-cloud-key
+ansible_user=ec2-user
