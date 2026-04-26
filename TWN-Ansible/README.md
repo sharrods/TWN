@@ -202,7 +202,6 @@ ec2-3-91-209-227.compute-1.amazonaws.com : ok=9    changed=2    unreachable=0   
 
 ## Lesson 11 — Project: Deploy Application
 
-[fill in after completing]
 
 ---
 
@@ -454,6 +453,177 @@ PLAY RECAP *********************************************************************
 ```
 
 - Install docker compose
+
+## Lessons 16-17 — Deploy Docker Application with Ansible and Terraform
+
+### What I Built
+- provisioned 2 EC2 instances with Terraform
+- configured both servers with Ansible — installed Docker, docker-compose
+- added ec2-user to docker group
+- deployed java-mysql application via docker-compose
+- used ansible-vault to protect DockerHub password
+- combined Terraform (provision) + Ansible (configure) workflow
+
+### Workflow
+```
+Terraform apply
+    ↓
+2 EC2 instances provisioned
+    ↓
+Ansible playbook
+    ↓
+Install Docker + docker-compose
+Add ec2-user to docker group
+Copy docker-compose.yaml
+Docker login
+Start containers
+    ↓
+java-mysql app running on both EC2 instances
+```
+
+### Final Playbook — deploy-docker-ec2-user.yaml
+```yaml
+---
+- name: Install Docker
+  hosts: docker_server
+  become: yes
+  tasks:
+    - name: Install Docker
+      yum:
+        name: docker
+        update_cache: yes
+        state: present
+    - name: Start docker daemon
+      systemd:
+        name: docker
+        state: started
+
+- name: Install Docker-compose
+  hosts: docker_server
+  tasks:
+    - name: Create docker-compose directory
+      file:
+        path: ~/.docker/cli-plugins
+        state: directory
+    - name: Get architecture of remote machine
+      shell: uname -m
+      register: remote_arch
+    - name: Install docker-compose
+      get_url:
+        url: "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-{{lookup('pipe', 'uname -m')}}"
+        dest: ~/.docker/cli-plugins/docker-compose
+        mode: +x
+
+- name: Add ec2-user to docker group
+  hosts: docker_server
+  become: yes
+  tasks:
+    - name: Add ec2-user to docker group
+      user:
+        name: ec2-user
+        groups: docker
+        append: yes
+    - name: Reconnect to server session
+      meta: reset_connection
+
+- name: Start docker containers
+  hosts: docker_server
+  vars_files:
+    - project-vars.yaml
+  tasks:
+    - name: Copy docker compose
+      copy:
+        src: /Users/sharrods/Documents/Techworld-with-nana/TWN-Ansible/bootcamp-java-mysql-project/docker-compose-full.yaml
+        dest: /home/ec2-user/docker-compose.yaml
+    - name: Docker login
+      community.docker.docker_login:
+        username: sharrods
+        password: "{{docker_password}}"
+    - name: Start containers from compose
+      community.docker.docker_compose_v2:
+        project_src: /home/ec2-user
+```
+
+### What Each Play Does
+
+#### Play 1 — Install Docker
+- `become: yes` = root required for yum installs
+- `yum` = Amazon Linux package manager
+- `systemd state: started` = starts docker daemon immediately
+
+#### Play 2 — Install Docker-compose
+- `file state: directory` = creates cli-plugins directory if not exists
+- `lookup('pipe', 'uname -m')` = gets architecture of remote machine dynamically
+  ensures correct binary downloaded for x86_64 or arm64
+- `get_url mode: +x` = downloads and makes executable in one step
+
+#### Play 3 — Add ec2-user to docker group
+- `groups: docker append: yes` = adds to docker group without removing other groups
+- `meta: reset_connection` = reconnects SSH so group change takes effect
+  without this docker commands still fail even after group added
+
+#### Play 4 — Start containers
+- `vars_files: project-vars.yaml` = loads encrypted vault file
+- `community.docker.docker_login` = authenticates with DockerHub
+- `community.docker.docker_compose_v2` = starts all services in compose file
+- `project_src` = directory containing docker-compose.yaml on remote server
+
+### Protecting DockerHub Password with ansible-vault
+```bash
+# Encrypt existing vars file
+ansible-vault encrypt project-vars.yaml
+
+# Create new encrypted file
+ansible-vault create project-vars.yaml
+
+# Edit encrypted file
+ansible-vault edit project-vars.yaml
+
+# Run playbook with vault
+ansible-playbook deploy-docker-ec2-user.yaml --ask-vault-pass
+
+# Or use password file
+ansible-playbook deploy-docker-ec2-user.yaml --vault-password-file ~/.vault-pass
+```
+
+### project-vars.yaml contents
+```yaml
+docker_password: your-encrypted-password-here
+```
+
+### Issues and Resolutions
+
+#### docker_login module not found
+- Error: `Module failed`
+- Cause: used `docker_login` instead of full collection name
+- Fix: `community.docker.docker_login`
+- Rule: always use full collection name for community modules
+
+#### hosts: all hitting wrong servers
+- Cause: `hosts: all` targets every server in inventory
+  Ubuntu nexus droplet got yum install — wrong package manager
+- Fix: change `hosts: all` to `hosts: docker_server`
+- Rule: always be specific with hosts — never use all in production
+
+#### Group docker does not exist
+- Error: `Group docker does not exist`
+- Cause: `hosts: all` still set on Add ec2-user play
+  nexus Ubuntu droplet targeted — Docker not installed there
+- Fix: change to `hosts: docker_server` on all plays
+
+#### version attribute obsolete in docker-compose
+- Warning: `the attribute version is obsolete, it will be ignored`
+- Cause: newer docker-compose deprecated the version field
+- Fix: remove `version:` line from top of docker-compose.yaml
+
+#### vault password file confused with vars file
+- Cause: passed project-vars.yaml as --vault-password-file
+  these are two different things
+- Wrong: `--vault-password-file project-vars.yaml`
+- Fixed: `--vault-password-file ~/.vault-pass`
+- Rule: vault password file contains only the password to decrypt
+  vars file contains the actual encrypted variables
+
 
 ### Issues and Resolutions
 
