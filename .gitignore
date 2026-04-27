@@ -114,3 +114,7 @@ coverage/
 target/
 gradle.properties
 bin/
+TWN-Python_Basics/__pycache__/
+TWN-Python_Basics/modules/
+TWN-Python_Automation/terraform/
+TWN-Ansible/nodejs-app/
