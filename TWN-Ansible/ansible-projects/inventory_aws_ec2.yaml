@@ -5,3 +5,4 @@ regions:
 filters:
   "tag:Name":
     - dev*
+    - prod*
