@@ -11,14 +11,10 @@ module "eks" {
   vpc_id     = module.myapp-vpc.vpc_id
 
   addons = {
-    coredns                 = {}
-    eks-pod-identity-agent  = {
-      before_compute = true
-    }
-    kube-proxy              = {}
-    vpc-cni                 = {
-      before_compute = true
-    }
+    coredns                = {}
+    eks-pod-identity-agent = { before_compute = true }
+    kube-proxy             = {}
+    vpc-cni                = { before_compute = true }
   }
 
   eks_managed_node_groups = {
