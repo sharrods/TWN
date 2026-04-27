@@ -1,0 +1,16 @@
+---
+- name: Deploy app in new namespace
+  hosts: localhost 
+  tasks:
+    - name: Create a k8's namespace
+      kubernetes.core.k8s:
+        name: my-app
+        api_version: v1
+        kind: Namespace
+        state: present
+        kubeconfig: /Users/sharrods/Documents/Techworld-with-nana/TWN-Terraform/terraform-learn-eks/kubeconfig_myapp-eks-cluster
+    - name: Deploy nginx app
+      kubernetes.core.k8s:
+        src: /Users/sharrods/Documents/Techworld-with-nana/TWN-Terraform/terraform-learn-eks/nginx-config.yaml
+        state: present
+        namespace: my-app
