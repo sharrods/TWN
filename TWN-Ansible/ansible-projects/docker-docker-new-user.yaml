@@ -2,6 +2,9 @@
 - name: Wait for SSH connection
   hosts: docker_server
   gather_facts: False
+  vars:
+    ansible_connection: local
+    ansible_python_interpreter: /usr/bin/python3
   tasks:
     - name: Ensure SSH port open
       wait_for:
@@ -10,9 +13,7 @@
         timeout: 100
         search_regex: OpenSSH
         host: '{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}'
-    vars:
-      ansible_connection: local
-      ansible_python_interpreter: /usr/bin/python3
+    
 
 
 - name: Install Docker
