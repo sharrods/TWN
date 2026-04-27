@@ -1,8 +1,7 @@
 ---
 plugin: aws_ec2
-regions: 
+regions:
   - us-east-1
 filters:
-  "tag:Name": 
+  "tag:Name":
     - dev*
-

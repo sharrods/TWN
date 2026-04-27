@@ -1,6 +1,6 @@
 ---
 - name: Wait for SSH Connections
-  hosts: all
+  hosts: aws_ec2
   gather_facts: False
   vars:
     ansible_connection: local
@@ -15,7 +15,7 @@
         host: '{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}'
 
 - name: Install Docker
-  hosts: all
+  hosts: aws_ec2
   become: yes
   tasks:
     - name: Install Docker
@@ -29,7 +29,7 @@
         state: started
 
 - name: Install Docker-compose
-  hosts: all
+  hosts: aws_ec2
   tasks:
     - name: Create docker-compose directory
       file:
@@ -45,7 +45,7 @@
         mode: +x
 
 - name: Add ec2-user to docker group
-  hosts: all
+  hosts: aws_ec2
   become: yes
   tasks: 
     - name: Add ec2-user to docker group
@@ -57,7 +57,7 @@
       meta: reset_connection
 
 - name: Start docker containers
-  hosts: all
+  hosts: aws_ec2
   vars_files:
     - project-vars.yaml
   tasks:
