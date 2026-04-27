@@ -202,7 +202,6 @@ ec2-3-91-209-227.compute-1.amazonaws.com : ok=9    changed=2    unreachable=0   
 
 ## Lesson 11 — Project: Deploy Application
 
-
 ---
 
 ## Lesson 13 — Ansible stat Module and Conditionals
@@ -457,6 +456,7 @@ PLAY RECAP *********************************************************************
 ## Lessons 16-17 — Deploy Docker Application with Ansible and Terraform
 
 ### What I Built
+
 - provisioned 2 EC2 instances with Terraform
 - configured both servers with Ansible — installed Docker, docker-compose
 - added ec2-user to docker group
@@ -465,6 +465,7 @@ PLAY RECAP *********************************************************************
 - combined Terraform (provision) + Ansible (configure) workflow
 
 ### Workflow
+
 ```
 Terraform apply
     ↓
@@ -482,6 +483,7 @@ java-mysql app running on both EC2 instances
 ```
 
 ### Final Playbook — deploy-docker-ec2-user.yaml
+
 ```yaml
 ---
 - name: Install Docker
@@ -547,28 +549,33 @@ java-mysql app running on both EC2 instances
 ### What Each Play Does
 
 #### Play 1 — Install Docker
+
 - `become: yes` = root required for yum installs
 - `yum` = Amazon Linux package manager
 - `systemd state: started` = starts docker daemon immediately
 
 #### Play 2 — Install Docker-compose
+
 - `file state: directory` = creates cli-plugins directory if not exists
 - `lookup('pipe', 'uname -m')` = gets architecture of remote machine dynamically
   ensures correct binary downloaded for x86_64 or arm64
 - `get_url mode: +x` = downloads and makes executable in one step
 
 #### Play 3 — Add ec2-user to docker group
+
 - `groups: docker append: yes` = adds to docker group without removing other groups
 - `meta: reset_connection` = reconnects SSH so group change takes effect
   without this docker commands still fail even after group added
 
 #### Play 4 — Start containers
+
 - `vars_files: project-vars.yaml` = loads encrypted vault file
 - `community.docker.docker_login` = authenticates with DockerHub
 - `community.docker.docker_compose_v2` = starts all services in compose file
 - `project_src` = directory containing docker-compose.yaml on remote server
 
 ### Protecting DockerHub Password with ansible-vault
+
 ```bash
 # Encrypt existing vars file
 ansible-vault encrypt project-vars.yaml
@@ -587,6 +594,7 @@ ansible-playbook deploy-docker-ec2-user.yaml --vault-password-file ~/.vault-pass
 ```
 
 ### project-vars.yaml contents
+
 ```yaml
 docker_password: your-encrypted-password-here
 ```
@@ -594,36 +602,40 @@ docker_password: your-encrypted-password-here
 ### Issues and Resolutions
 
 #### docker_login module not found
+
 - Error: `Module failed`
 - Cause: used `docker_login` instead of full collection name
 - Fix: `community.docker.docker_login`
 - Rule: always use full collection name for community modules
 
 #### hosts: all hitting wrong servers
+
 - Cause: `hosts: all` targets every server in inventory
   Ubuntu nexus droplet got yum install — wrong package manager
 - Fix: change `hosts: all` to `hosts: docker_server`
 - Rule: always be specific with hosts — never use all in production
 
 #### Group docker does not exist
+
 - Error: `Group docker does not exist`
 - Cause: `hosts: all` still set on Add ec2-user play
   nexus Ubuntu droplet targeted — Docker not installed there
 - Fix: change to `hosts: docker_server` on all plays
 
 #### version attribute obsolete in docker-compose
+
 - Warning: `the attribute version is obsolete, it will be ignored`
 - Cause: newer docker-compose deprecated the version field
 - Fix: remove `version:` line from top of docker-compose.yaml
 
 #### vault password file confused with vars file
+
 - Cause: passed project-vars.yaml as --vault-password-file
   these are two different things
 - Wrong: `--vault-password-file project-vars.yaml`
 - Fixed: `--vault-password-file ~/.vault-pass`
 - Rule: vault password file contains only the password to decrypt
   vars file contains the actual encrypted variables
-
 
 ### Issues and Resolutions
 
@@ -657,6 +669,35 @@ docker_password: your-encrypted-password-here
 - Error: `Could not match supplied host pattern, ignoring: nexus_server`
 - Cause: playbook used `nexus_server` group but hosts file had `[webserver]`
 - Fix: add `[nexus_server]` group to hosts file with the correct IP
+
+---
+
+### Lesson 20
+
+- ## Dependencies
+
+### Python packages required
+
+```bash
+pip install kubernetes
+pip install PyYAML
+pip install jsonpatch
+```
+
+- `kubernetes` = Python client for Kubernetes API — required for `kubernetes.core.k8s` Ansible module
+- `PyYAML` = YAML parsing library — required by kubernetes client
+- `jsonpatch` = JSON patch support — required for kubernetes apply operations
+
+### Ansible collection required
+
+```bash
+ansible-galaxy collection install kubernetes.core
+```
+
+### Note on virtualenv
+
+- install inside virtualenv without `--user` flag
+- `--user` flag not compatible with virtualenv installs
 
 ---
 
@@ -791,7 +832,9 @@ docker_password: your-encrypted-password-here
 - edit: `ansible-vault edit project-vars.yaml`
 - run playbook: `ansible-playbook deploy.yaml --ask-vault-pass`
 - encrypted file is safe to commit to git
+
 ### version attribute obsolete in docker-compose
+
 - Warning: `the attribute version is obsolete, it will be ignored`
 - Cause: newer versions of docker-compose deprecated the version field
 - Fix: remove `version:` line from top of docker-compose.yaml
