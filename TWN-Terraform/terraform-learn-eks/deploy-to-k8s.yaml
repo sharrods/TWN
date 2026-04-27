@@ -13,4 +13,5 @@
       kubernetes.core.k8s:
         src: /Users/sharrods/Documents/Techworld-with-nana/TWN-Terraform/terraform-learn-eks/nginx-config.yaml
         state: present
+        kubeconfig: /Users/sharrods/Documents/Techworld-with-nana/TWN-Terraform/terraform-learn-eks/kubeconfig_myapp-eks-cluster
         namespace: my-app
