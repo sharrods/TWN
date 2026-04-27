@@ -10,9 +10,15 @@ module "eks" {
   subnet_ids = module.myapp-vpc.private_subnets
   vpc_id     = module.myapp-vpc.vpc_id
 
-  tags = {
-    environment = "development"
-    application = "myapp"
+  addons = {
+    coredns                 = {}
+    eks-pod-identity-agent  = {
+      before_compute = true
+    }
+    kube-proxy              = {}
+    vpc-cni                 = {
+      before_compute = true
+    }
   }
 
   eks_managed_node_groups = {
@@ -22,5 +28,10 @@ module "eks" {
       desired_size   = 3
       instance_types = ["t3.small"]
     }
+  }
+
+  tags = {
+    environment = "development"
+    application = "myapp"
   }
 }
