@@ -1,0 +1,13 @@
+- name: Copy docker compose
+  copy:
+    src: /Users/sharrods/Documents/Techworld-with-nana/TWN-Ansible/bootcamp-java-mysql-project/docker-compose-full.yaml
+    dest: /home/sharrod/docker-compose.yaml
+
+- name: Docker login
+  docker_login:
+    username: sharrods
+    password: "{{docker_password}}"
+
+- name: Start containers from compose
+  community.docker.docker_compose_v2:
+    project_src: /home/sharrod
