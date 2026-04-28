@@ -699,6 +699,8 @@ ansible-galaxy collection install kubernetes.core
 - install inside virtualenv without `--user` flag
 - `--user` flag not compatible with virtualenv installs
 
+### Lesson 22
+
 ---
 
 ## Key Concepts
