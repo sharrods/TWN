@@ -140,7 +140,7 @@ resource "aws_instance" "myapp-server-two" {
     Name: "${var.env_prefix}-server-2"
   }
 }
-
+/*
 resource "aws_instance" "myapp-server-three" {
   ami = data.aws_ami.latest-amazon-linux-image.id
   instance_type = var.instance_type
@@ -172,3 +172,4 @@ resource "aws_instance" "myapp-server-four" {
     Name: "prod-server"
   }
 }
+*/
