@@ -9,7 +9,7 @@ pipeline {
         script {
           echo "copying all neccessary files to ansible control node"
           sshagent(['ansible-server-key']) {
-            sh "scp -o StrictHostKeyChecking=no TWN-Ansible/ansible-projects/java-maven-app/ansible/* root@${ANSIBLE_SERVER}:/root"
+            sh "scp -o StrictHostKeyChecking=no TWN-Ansible/java-maven-app/ansible/* root@${ANSIBLE_SERVER}:/root"
 
             withCredentials([sshUserPrivateKey(credentialsId: 'ec2-mod15-server-key', keyFileVariable: 'keyfile', usernameVariable: 'user')]) {
               sh 'scp $keyfile root@$ANSIBLE_SERVER:/root/multi-cloud-key'
@@ -30,7 +30,7 @@ pipeline {
           withCredentials([sshUserPrivateKey(credentialsId: 'ansible-server-key', keyFileVariable: 'keyfile', usernameVariable: 'user')]) {
             remote.user = user
             remote.identityFile = keyfile
-            sshScript remote: remote, script: "TWN-Ansible/ansible-projects/java-maven-app/ansible/prepare-ansible-server.sh"
+            sshScript remote: remote, script: "TWN-Ansible/java-maven-app/ansible/prepare-ansible-server.sh"
             sshCommand remote: remote, command: "ansible-playbook my-playbook.yaml"
           }
         }
