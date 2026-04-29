@@ -1,6 +1,6 @@
 ---
 - name: Install Docker
-  hosts: all
+  hosts: aws_ec2
   become: yes
   tasks:
     - name: Install Docker
@@ -14,14 +14,14 @@
         state: started
 
 - name: Create new linux user
-  hosts: all
+  hosts: aws_ec2
   become: yes
   roles:
     - create_user 
 
     
 - name: Install Docker-compose
-  hosts: all
+  hosts: aws_ec2
   become: yes
   become_user: sharrod
   tasks:
@@ -38,11 +38,24 @@
         dest: ~/.docker/cli-plugins/docker-compose
         mode: +x
 
+- name: Add ec2-user to docker group
+  hosts: aws_ec2
+  become: yes
+  tasks: 
+    - name: Add ec2-user to docker group
+      user: 
+        name: sharrod
+        groups: docker
+        append: yes
+    - name: Reconnect to server session
+      meta: reset_connection
+
+
 - name: Start docker containers
-  hosts: all
+  hosts: aws_ec2
   become: yes
   become_user: sharrod
   vars_files:
-    - project-vars
+    - project-vars.yaml
   roles:
     - start_containers

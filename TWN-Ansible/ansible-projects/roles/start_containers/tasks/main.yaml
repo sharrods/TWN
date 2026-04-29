@@ -1,6 +1,7 @@
 - name: Copy docker compose
   copy:
-    src: /Users/sharrods/Documents/Techworld-with-nana/TWN-Ansible/bootcamp-java-mysql-project/docker-compose-full.yaml
+#    src: /Users/sharrods/Documents/Techworld-with-nana/TWN-Ansible/bootcamp-java-mysql-project/docker-compose-full.yaml
+    src: /Users/sharrods/Documents/Techworld-with-nana/TWN-Ansible/ansible-projects/roles/start_containers/tasks/files/docker-compose.yaml
     dest: /home/sharrod/docker-compose.yaml
 
 - name: Docker login
