@@ -4,14 +4,25 @@ metadata:
   name: main-rules-alert-config
   namespace: monitoring
 spec:
+  route:
+    receiver: 'email'
+    repeatInterval: 30m
+    routes:
+    - matchers: 
+      - name: alertname
+        value: HostHighCpuLoad
+    - matchers:
+      - name: alername 
+        value: KubernetesPodCrashLooping
+      repeatInterval: 10m
   receivers:
   - name: 'email'
     emailConfigs:
-    - to: 'nana.janashia@nnsoftware.at'
-      from: 'nana.janashia@nnsoftware.at'
+    - to: 'sharrodaws@gmail.com'
+      from: 'sharrodaws@gmail.com'
       smarthost: 'smtp.gmail.com:587'
-      authUsername: 'nana.janashia@nnsoftware.at'
-      authIdentity: 'nana.janashia@nnsoftware.at'
+      authUsername: 'sharrodaws@gmail.com'
+      authIdentity: 'sharrodaws@gmail.com'
       authPassword:
         name: gmail-auth
         key: password
