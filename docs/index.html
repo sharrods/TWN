@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sharrod Skinner — DevOps Bootcamp</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg: #080c10;
+  --surface: #0d1117;
+  --border: rgba(255,255,255,0.07);
+  --accent: #00e5ff;
+  --accent2: #ff6b2b;
+  --text: #e6edf3;
+  --muted: #7d8590;
+  --card: #0d1117;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(120px);
+  pointer-events: none;
+  z-index: 0;
+}
+.orb-1 { width: 600px; height: 600px; background: rgba(0,229,255,0.05); top: -200px; left: -100px; }
+.orb-2 { width: 500px; height: 500px; background: rgba(255,107,43,0.04); bottom: -100px; right: -100px; }
+
+/* BACK LINK */
+.back-bar {
+  position: relative;
+  z-index: 2;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-decoration: none;
+  letter-spacing: 0.1em;
+  transition: color 0.2s;
+}
+.back-link:hover { color: var(--accent); }
+
+/* HERO */
+.hero {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 60px 24px 50px;
+  border-bottom: 1px solid var(--border);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0,229,255,0.08);
+  border: 1px solid rgba(0,229,255,0.2);
+  border-radius: 100px;
+  padding: 6px 16px;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  margin-bottom: 28px;
+  text-transform: uppercase;
+}
+
+.badge::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+.hero h1 {
+  font-size: clamp(2.2rem, 5vw, 4rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+}
+
+.hero h1 span {
+  display: block;
+  background: linear-gradient(135deg, var(--accent) 0%, #60efff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero p {
+  font-size: 0.95rem;
+  color: var(--muted);
+  max-width: 560px;
+  margin: 0 auto 36px;
+  line-height: 1.8;
+}
+
+.hero-links {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 22px;
+  border-radius: 8px;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  text-decoration: none;
+  transition: all 0.2s;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary { background: var(--accent); color: #000; font-weight: 700; }
+.btn-primary:hover { background: #33eaff; transform: translateY(-2px); }
+.btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { border-color: rgba(255,255,255,0.2); transform: translateY(-2px); }
+
+/* STATS */
+.stats {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.stat { background: var(--bg); padding: 24px 16px; text-align: center; }
+
+.stat-number {
+  font-family: 'Space Mono', monospace;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.stat-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+
+/* SECTION */
+.section {
+  position: relative;
+  z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 56px 24px;
+}
+
+.section-tag {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem;
+  color: var(--accent);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.section-title {
+  font-size: 1.7rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-bottom: 8px;
+}
+
+.section-sub {
+  font-size: 0.87rem;
+  color: var(--muted);
+  line-height: 1.7;
+  margin-bottom: 40px;
+}
+
+/* MODULE TIMELINE */
+.timeline { position: relative; padding-left: 32px; }
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: 8px;
+  bottom: 8px;
+  width: 1px;
+  background: linear-gradient(to bottom, var(--accent), transparent);
+}
+
+.module-block { margin-bottom: 32px; }
+
+.module-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--accent);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  padding-left: 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.module-label::before {
+  content: '';
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+  border: 2px solid var(--bg);
+  margin-left: -37px;
+  flex-shrink: 0;
+}
+
+.projects-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.project-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 20px;
+  transition: border-color 0.2s;
+  position: relative;
+}
+
+.project-item:hover { border-color: rgba(0,229,255,0.2); }
+
+.project-item-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.project-name {
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.project-desc {
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+
+.project-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tech-tags {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.ttag {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.58rem;
+  padding: 2px 8px;
+  border-radius: 100px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.tech-icons {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.ticon {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  line-height: 1;
+  title: '';
+}
+
+/* CLOUD FOOTPRINT */
+.cloud-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.cloud-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  transition: all 0.25s;
+}
+
+.cloud-card:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,0.3); }
+.cloud-card.aws { border-top: 2px solid #ff9900; }
+.cloud-card.do { border-top: 2px solid #0080ff; }
+.cloud-card.linode { border-top: 2px solid #00b050; }
+
+.cloud-icon { font-size: 1.4rem; margin-bottom: 8px; }
+.cloud-provider { font-size: 0.6rem; font-family: 'DM Mono', monospace; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; }
+.cloud-role { font-size: 0.92rem; font-weight: 700; margin-bottom: 10px; }
+.cloud-items { list-style: none; }
+.cloud-items li { font-size: 0.75rem; color: var(--muted); padding: 2px 0; display: flex; align-items: center; gap: 6px; }
+.cloud-items li::before { content: '→'; color: var(--accent); font-family: monospace; font-size: 0.7rem; }
+
+/* DIVIDER */
+.divider { border: none; border-top: 1px solid var(--border); position: relative; z-index: 1; }
+
+/* FOOTER */
+footer {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 36px 24px;
+  border-top: 1px solid var(--border);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+footer a { color: var(--accent); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.fade-up { animation: fadeUp 0.6s ease forwards; opacity: 0; }
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+</style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<!-- BACK BAR -->
+<div class="back-bar">
+  <a href="https://sharrods.github.io" class="back-link">← sharrods.github.io</a>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="badge fade-up">TechWorld With Nana · DevOps Bootcamp · 2026</div>
+  <h1 class="fade-up delay-1">
+    Sharrod Skinner
+    <span>DevOps Bootcamp</span>
+  </h1>
+  <p class="fade-up delay-2">
+    16 modules. 59 hands-on demo projects. Every major DevOps tool built from scratch — CI/CD, Kubernetes, Terraform, Ansible, Python automation, and a full Prometheus monitoring stack. 251 commits documenting every step.
+  </p>
+  <div class="hero-links fade-up delay-3">
+    <a href="https://github.com/sharrods/TWN" class="btn btn-primary" target="_blank" rel="noopener">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+      View GitHub Repo
+    </a>
+    <a href="https://sharrods.github.io" class="btn btn-secondary">
+      ← Back to Portfolio
+    </a>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats fade-up delay-3">
+  <div class="stat">
+    <div class="stat-number">16</div>
+    <div class="stat-label">Modules</div>
+  </div>
+  <div class="stat">
+    <div class="stat-number">59</div>
+    <div class="stat-label">Demo Projects</div>
+  </div>
+  <div class="stat">
+    <div class="stat-number">3</div>
+    <div class="stat-label">Cloud Providers</div>
+  </div>
+  <div class="stat">
+    <div class="stat-number">251</div>
+    <div class="stat-label">Commits</div>
+  </div>
+  <div class="stat">
+    <div class="stat-number">∞</div>
+    <div class="stat-label">Coffee</div>
+  </div>
+</div>
+
+<!-- PROJECTS TIMELINE -->
+<div class="section">
+  <div class="section-tag">// learning path</div>
+  <h2 class="section-title">59 Demo Projects</h2>
+  <p class="section-sub">Every project built hands-on — no skipping, no shortcuts. Module 5 through 16.</p>
+
+  <div class="timeline">
+
+    <!-- MODULE 5 -->
+    <div class="module-block">
+      <div class="module-label">Module 5 — Cloud & Infrastructure as a Service</div>
+      <div class="projects-list">
+        <div class="project-item">
+          <div class="project-name">Create server and deploy application on DigitalOcean</div>
+          <div class="project-desc">Setup and configure a DigitalOcean Droplet, create Linux user (security best practice), deploy and run a Java Gradle application.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">DigitalOcean</span><span class="ttag">Linux</span><span class="ttag">Java</span><span class="ttag">Gradle</span></div>
+            <div class="tech-icons"><div class="ticon">🌊</div><div class="ticon">🐧</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 6 -->
+    <div class="module-block">
+      <div class="module-label">Module 6 — Artifact Repository Manager with Nexus</div>
+      <div class="projects-list">
+        <div class="project-item">
+          <div class="project-name">Run Nexus on Droplet and Publish Artifact to Nexus</div>
+          <div class="project-desc">Install and configure Nexus from scratch on a cloud server. Create users with permissions. Build and upload Jar artifacts from both Gradle and Maven projects.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Nexus</span><span class="ttag">DigitalOcean</span><span class="ttag">Java</span><span class="ttag">Gradle</span><span class="ttag">Maven</span></div>
+            <div class="tech-icons"><div class="ticon">📦</div><div class="ticon">🌊</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 7 -->
+    <div class="module-block">
+      <div class="module-label">Module 7 — Containers with Docker</div>
+      <div class="projects-list">
+        <div class="project-item">
+          <div class="project-name">Use Docker for local development</div>
+          <div class="project-desc">Create Dockerfile for a Node.js app, run it with MongoDB and MongoExpress containers locally.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Docker</span><span class="ttag">Node.js</span><span class="ttag">MongoDB</span></div>
+            <div class="tech-icons"><div class="ticon">🐳</div><div class="ticon">🟩</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Dockerize a Node.js application</div>
+          <div class="project-desc">Write a Dockerfile to build a production Docker image for a Node.js application.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Docker</span><span class="ttag">Node.js</span></div>
+            <div class="tech-icons"><div class="ticon">🐳</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Docker Compose — Run multiple containers</div>
+          <div class="project-desc">Write a Docker Compose file to run MongoDB and MongoExpress together.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Docker Compose</span><span class="ttag">MongoDB</span></div>
+            <div class="tech-icons"><div class="ticon">🐳</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Create Docker repository on Nexus and push to it</div>
+          <div class="project-desc">Create a Docker hosted repository on Nexus, configure roles and permissions, build and push Docker images to it.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Docker</span><span class="ttag">Nexus</span><span class="ttag">DigitalOcean</span></div>
+            <div class="tech-icons"><div class="ticon">🐳</div><div class="ticon">📦</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Persist data with Docker Volumes</div>
+          <div class="project-desc">Attach a Docker volume to a MongoDB container to persist data across container restarts.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Docker</span><span class="ttag">Volumes</span><span class="ttag">MongoDB</span></div>
+            <div class="tech-icons"><div class="ticon">🐳</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Deploy Nexus as Docker container</div>
+          <div class="project-desc">Create and configure a DigitalOcean Droplet, set up and run Nexus as a Docker container.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Docker</span><span class="ttag">Nexus</span><span class="ttag">DigitalOcean</span></div>
+            <div class="tech-icons"><div class="ticon">🐳</div><div class="ticon">📦</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Deploy Docker application on a server with Docker Compose</div>
+          <div class="project-desc">Copy docker-compose file to remote server, login to private Docker registry, start app with MongoDB and MongoExpress using docker compose on AWS EC2.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Docker</span><span class="ttag">Amazon ECR</span><span class="ttag">AWS</span></div>
+            <div class="tech-icons"><div class="ticon">🐳</div><div class="ticon">☁️</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 8 -->
+    <div class="module-block">
+      <div class="module-label">Module 8 — Build Automation & CI/CD with Jenkins</div>
+      <div class="projects-list">
+        <div class="project-item">
+          <div class="project-name">Install Jenkins on DigitalOcean</div>
+          <div class="project-desc">Create Ubuntu server on DigitalOcean, set up and run Jenkins as a Docker container, initialize Jenkins.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Jenkins</span><span class="ttag">Docker</span><span class="ttag">DigitalOcean</span></div>
+            <div class="tech-icons"><div class="ticon">⚙️</div><div class="ticon">🐳</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Create a CI Pipeline with Jenkinsfile (Freestyle, Pipeline, Multibranch)</div>
+          <div class="project-desc">Install build tools in Jenkins, make Docker available, create Freestyle/Pipeline/Multibranch jobs to build Jar, build Docker image, and push to DockerHub.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Jenkins</span><span class="ttag">Docker</span><span class="ttag">Maven</span><span class="ttag">Git</span></div>
+            <div class="tech-icons"><div class="ticon">⚙️</div><div class="ticon">🐳</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Create a Jenkins Shared Library</div>
+          <div class="project-desc">Extract common build logic into a separate Git repo as a Jenkins Shared Library. Integrate globally and per-project in Jenkinsfiles.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Jenkins</span><span class="ttag">Groovy</span><span class="ttag">Git</span></div>
+            <div class="tech-icons"><div class="ticon">⚙️</div><div class="ticon">📋</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Configure Webhook to trigger CI Pipeline automatically</div>
+          <div class="project-desc">Install GitLab plugin in Jenkins, configure access tokens and webhooks, trigger CI pipeline on every push to GitLab.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Jenkins</span><span class="ttag">GitLab</span><span class="ttag">Webhooks</span></div>
+            <div class="tech-icons"><div class="ticon">⚙️</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Dynamically Increment Application version in Jenkins Pipeline</div>
+          <div class="project-desc">Increment patch version, build with dynamic Docker image tag, push to DockerHub, commit version update back to Git — preventing commit loop.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Jenkins</span><span class="ttag">Docker</span><span class="ttag">GitLab</span><span class="ttag">Maven</span></div>
+            <div class="tech-icons"><div class="ticon">⚙️</div><div class="ticon">🐳</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 9 -->
+    <div class="module-block">
+      <div class="module-label">Module 9 — AWS Services</div>
+      <div class="projects-list">
+        <div class="project-item">
+          <div class="project-name">Deploy Web Application on EC2 Instance (manually)</div>
+          <div class="project-desc">Create and configure EC2, install Docker, deploy Docker image from private repository on EC2.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">AWS</span><span class="ttag">EC2</span><span class="ttag">Docker</span></div>
+            <div class="tech-icons"><div class="ticon">☁️</div><div class="ticon">🐳</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">CD — Deploy from Jenkins Pipeline to EC2 (docker)</div>
+          <div class="project-desc">Prepare EC2 for deployment, create SSH credentials in Jenkins, extend CI pipeline with deploy step via SSH.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">AWS</span><span class="ttag">Jenkins</span><span class="ttag">Docker</span><span class="ttag">SSH</span></div>
+            <div class="tech-icons"><div class="ticon">☁️</div><div class="ticon">⚙️</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">CD — Deploy from Jenkins Pipeline to EC2 (docker-compose)</div>
+          <div class="project-desc">Install Docker Compose on EC2, create docker-compose.yml, configure Jenkins to deploy using Compose, extract Linux commands into shell script.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">AWS</span><span class="ttag">Jenkins</span><span class="ttag">Docker Compose</span></div>
+            <div class="tech-icons"><div class="ticon">☁️</div><div class="ticon">⚙️</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Complete CI/CD Pipeline (Docker-Compose, Dynamic versioning)</div>
+          <div class="project-desc">Full pipeline: increment version → build artifact → build and push Docker image → deploy with Compose → commit version update.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">AWS</span><span class="ttag">Jenkins</span><span class="ttag">Docker</span><span class="ttag">Maven</span></div>
+            <div class="tech-icons"><div class="ticon">☁️</div><div class="ticon">⚙️</div><div class="ticon">🐳</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Create repository on AWS ECR and push Docker image</div>
+          <div class="project-desc">Create private Docker registry on Amazon ECR, tag and push Docker image to it.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">AWS ECR</span><span class="ttag">Docker</span></div>
+            <div class="tech-icons"><div class="ticon">☁️</div><div class="ticon">🐳</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Interacting with AWS CLI</div>
+          <div class="project-desc">Install and configure AWS CLI, create EC2 instances, SSH key pairs, IAM users, groups, and policies — all from the command line.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">AWS CLI</span><span class="ttag">IAM</span><span class="ttag">EC2</span></div>
+            <div class="tech-icons"><div class="ticon">☁️</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 10 -->
+    <div class="module-block">
+      <div class="module-label">Module 10 — Container Orchestration with Kubernetes</div>
+      <div class="projects-list">
+        <div class="project-item">
+          <div class="project-name">Deploy MongoDB and MongoExpress into local K8s cluster</div>
+          <div class="project-desc">Setup Minikube, deploy MongoDB and MongoExpress with ConfigMap and Secret for configuration and credentials.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Kubernetes</span><span class="ttag">Minikube</span><span class="ttag">MongoDB</span></div>
+            <div class="tech-icons"><div class="ticon">⎈</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Deploy Mosquitto message broker with ConfigMap and Secret Volume Types</div>
+          <div class="project-desc">Define configuration and passwords for Mosquitto using ConfigMap and Secret Volume types.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Kubernetes</span><span class="ttag">Mosquitto</span><span class="ttag">ConfigMap</span></div>
+            <div class="tech-icons"><div class="ticon">⎈</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Install a stateful service (MongoDB) on Kubernetes using Helm</div>
+          <div class="project-desc">Create managed K8s cluster on Linode LKE, deploy replicated MongoDB with Helm, configure persistence with Linode cloud storage, deploy MongoExpress with nginx ingress.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Helm</span><span class="ttag">Linode LKE</span><span class="ttag">MongoDB</span><span class="ttag">Ingress</span></div>
+            <div class="tech-icons"><div class="ticon">⎈</div><div class="ticon">🟢</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Deploy web application from private Docker registry in K8s</div>
+          <div class="project-desc">Create registry credentials Secret, configure Docker registry secret in Deployment, deploy app from private AWS ECR registry.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Kubernetes</span><span class="ttag">AWS ECR</span><span class="ttag">Secrets</span></div>
+            <div class="tech-icons"><div class="ticon">⎈</div><div class="ticon">☁️</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Deploy Microservices with Production & Security Best Practices</div>
+          <div class="project-desc">Create K8s manifests for all microservices of an online shop, deploy to Linode LKE with production security practices.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Kubernetes</span><span class="ttag">Linode LKE</span><span class="ttag">Redis</span></div>
+            <div class="tech-icons"><div class="ticon">⎈</div><div class="ticon">🟢</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Create Helm Chart for Microservices</div>
+          <div class="project-desc">Create one shared Helm Chart for all microservices to reuse common Deployment and Service configurations.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Helm</span><span class="ttag">Kubernetes</span></div>
+            <div class="tech-icons"><div class="ticon">⎈</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Deploy Microservices with Helmfile</div>
+          <div class="project-desc">Deploy all microservices using Helm and Helmfile for declarative multi-chart deployments.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Helmfile</span><span class="ttag">Helm</span><span class="ttag">Kubernetes</span></div>
+            <div class="tech-icons"><div class="ticon">⎈</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 11 -->
+    <div class="module-block">
+      <div class="module-label">Module 11 — Kubernetes on AWS (EKS)</div>
+      <div class="projects-list">
+        <div class="project-item">
+          <div class="project-name">Create AWS EKS cluster with a Node Group</div>
+          <div class="project-desc">Configure IAM roles, create VPC with CloudFormation, create EKS cluster, Node Group, configure auto-scaling, deploy sample app.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">AWS EKS</span><span class="ttag">IAM</span><span class="ttag">CloudFormation</span></div>
+            <div class="tech-icons"><div class="ticon">☁️</div><div class="ticon">⎈</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Create EKS cluster with Fargate profile</div>
+          <div class="project-desc">Create Fargate IAM role, Fargate profile, deploy application using Fargate serverless compute.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">AWS EKS</span><span class="ttag">Fargate</span></div>
+            <div class="tech-icons"><div class="ticon">☁️</div><div class="ticon">⎈</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Create EKS cluster with eksctl</div>
+          <div class="project-desc">Use eksctl to reduce the manual effort of creating a production EKS cluster.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">eksctl</span><span class="ttag">AWS EKS</span></div>
+            <div class="tech-icons"><div class="ticon">☁️</div><div class="ticon">⎈</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">CD — Deploy to LKE cluster from Jenkins Pipeline</div>
+          <div class="project-desc">Create K8s cluster on Linode LKE, install kubectl as Jenkins Plugin, adjust Jenkinsfile to deploy to LKE.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Jenkins</span><span class="ttag">Linode LKE</span><span class="ttag">Kubernetes</span></div>
+            <div class="tech-icons"><div class="ticon">⚙️</div><div class="ticon">🟢</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">CD — Deploy to EKS cluster from Jenkins Pipeline</div>
+          <div class="project-desc">Install kubectl and aws-iam-authenticator on Jenkins, create kubeconfig for EKS, add AWS credentials, extend Jenkinsfile for EKS deployment.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Jenkins</span><span class="ttag">AWS EKS</span><span class="ttag">kubectl</span></div>
+            <div class="tech-icons"><div class="ticon">⚙️</div><div class="ticon">☁️</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Complete CI/CD Pipeline with EKS and DockerHub</div>
+          <div class="project-desc">Full pipeline: increment version → build artifact → build and push to DockerHub → deploy to EKS → commit version update.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">EKS</span><span class="ttag">Jenkins</span><span class="ttag">Docker Hub</span><span class="ttag">Maven</span></div>
+            <div class="tech-icons"><div class="ticon">⚙️</div><div class="ticon">☁️</div><div class="ticon">⎈</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Complete CI/CD Pipeline with EKS and AWS ECR</div>
+          <div class="project-desc">Same full pipeline but using AWS ECR as the private Docker registry instead of DockerHub.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">EKS</span><span class="ttag">AWS ECR</span><span class="ttag">Jenkins</span></div>
+            <div class="tech-icons"><div class="ticon">⚙️</div><div class="ticon">☁️</div><div class="ticon">⎈</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 12 -->
+    <div class="module-block">
+      <div class="module-label">Module 12 — Infrastructure as Code with Terraform</div>
+      <div class="projects-list">
+        <div class="project-item">
+          <div class="project-name">Automate AWS Infrastructure</div>
+          <div class="project-desc">Create Terraform project to provision VPC, Subnet, Route Table, Internet Gateway, EC2, Security Group. Automate Docker container deployment to EC2.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Terraform</span><span class="ttag">AWS</span><span class="ttag">VPC</span><span class="ttag">EC2</span></div>
+            <div class="tech-icons"><div class="ticon">🔷</div><div class="ticon">☁️</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Modularize Terraform Project</div>
+          <div class="project-desc">Divide Terraform resources into reusable modules for better organization and reuse.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Terraform</span><span class="ttag">Modules</span></div>
+            <div class="tech-icons"><div class="ticon">🔷</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Terraform & AWS EKS</div>
+          <div class="project-desc">Automate provisioning of a complete EKS cluster using Terraform with all required networking and IAM.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Terraform</span><span class="ttag">AWS EKS</span></div>
+            <div class="tech-icons"><div class="ticon">🔷</div><div class="ticon">⎈</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Configure a Shared Remote State</div>
+          <div class="project-desc">Configure Amazon S3 as remote backend for Terraform state with proper locking and versioning.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Terraform</span><span class="ttag">AWS S3</span><span class="ttag">Remote State</span></div>
+            <div class="tech-icons"><div class="ticon">🔷</div><div class="ticon">☁️</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Complete CI/CD with Terraform</div>
+          <div class="project-desc">Integrate Terraform provisioning into full CI/CD pipeline — build artifact → build Docker image → provision EC2 with Terraform → deploy with Docker Compose.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Terraform</span><span class="ttag">Jenkins</span><span class="ttag">AWS</span><span class="ttag">Docker</span></div>
+            <div class="tech-icons"><div class="ticon">🔷</div><div class="ticon">⚙️</div><div class="ticon">☁️</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 13 -->
+    <div class="module-block">
+      <div class="module-label">Module 13 — Programming with Python</div>
+      <div class="projects-list">
+        <div class="project-item">
+          <div class="project-name">Write Countdown Application</div>
+          <div class="project-desc">Application that accepts a goal and deadline, prints remaining time until that deadline.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Python</span><span class="ttag">Git</span></div>
+            <div class="tech-icons"><div class="ticon">🐍</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Automation with Python — Spreadsheet Processing</div>
+          <div class="project-desc">Read, process, and manipulate spreadsheet files programmatically with Python.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Python</span><span class="ttag">Automation</span></div>
+            <div class="tech-icons"><div class="ticon">🐍</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">API Request to GitLab</div>
+          <div class="project-desc">Write a Python app that calls the GitLab API and lists all public repositories for a specified user.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Python</span><span class="ttag">GitLab API</span><span class="ttag">REST</span></div>
+            <div class="tech-icons"><div class="ticon">🐍</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 14 -->
+    <div class="module-block">
+      <div class="module-label">Module 14 — Automation with Python (Boto3)</div>
+      <div class="projects-list">
+        <div class="project-item">
+          <div class="project-name">Health Check — EC2 Status Checks</div>
+          <div class="project-desc">Create EC2 instances with Terraform, write Python/Boto3 script to fetch and continuously monitor EC2 instance statuses.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Python</span><span class="ttag">Boto3</span><span class="ttag">AWS</span><span class="ttag">Terraform</span></div>
+            <div class="tech-icons"><div class="ticon">🐍</div><div class="ticon">☁️</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Automate configuring EC2 Server Instances</div>
+          <div class="project-desc">Write a Python/Boto3 script that automatically adds environment tags to all EC2 instances.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Python</span><span class="ttag">Boto3</span><span class="ttag">EC2</span></div>
+            <div class="tech-icons"><div class="ticon">🐍</div><div class="ticon">☁️</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Automate displaying EKS cluster information</div>
+          <div class="project-desc">Python/Boto3 script that fetches and displays EKS cluster status and node information.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Python</span><span class="ttag">Boto3</span><span class="ttag">AWS EKS</span></div>
+            <div class="tech-icons"><div class="ticon">🐍</div><div class="ticon">⎈</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Data Backup & Restore</div>
+          <div class="project-desc">Python scripts to automate creating EC2 volume backups, cleaning up old snapshots, and restoring volumes.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Python</span><span class="ttag">Boto3</span><span class="ttag">EBS Snapshots</span></div>
+            <div class="tech-icons"><div class="ticon">🐍</div><div class="ticon">☁️</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Website Monitoring and Recovery</div>
+          <div class="project-desc">Create cloud server, run Docker container, write Python scripts to monitor HTTP response, send email alerts when down, and auto-restart the application and server.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Python</span><span class="ttag">Linode</span><span class="ttag">Docker</span><span class="ttag">Monitoring</span></div>
+            <div class="tech-icons"><div class="ticon">🐍</div><div class="ticon">🟢</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 15 -->
+    <div class="module-block">
+      <div class="module-label">Module 15 — Configuration Management with Ansible</div>
+      <div class="projects-list">
+        <div class="project-item">
+          <div class="project-name">Automate Node.js application Deployment</div>
+          <div class="project-desc">Create DigitalOcean server, write Ansible Playbook to install dependencies, create Linux user, and deploy Node.js app.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Ansible</span><span class="ttag">Node.js</span><span class="ttag">DigitalOcean</span></div>
+            <div class="tech-icons"><div class="ticon">🅰️</div><div class="ticon">🌊</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Automate Nexus Deployment</div>
+          <div class="project-desc">Write Ansible Playbook to create Linux user for Nexus, configure server, install and deploy Nexus, verify it's running.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Ansible</span><span class="ttag">Nexus</span><span class="ttag">DigitalOcean</span></div>
+            <div class="tech-icons"><div class="ticon">🅰️</div><div class="ticon">📦</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Ansible & Docker</div>
+          <div class="project-desc">Create AWS EC2 with Terraform, write Ansible Playbook to install Docker and Docker Compose, copy docker-compose file, start containers.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Ansible</span><span class="ttag">Docker</span><span class="ttag">Terraform</span><span class="ttag">AWS</span></div>
+            <div class="tech-icons"><div class="ticon">🅰️</div><div class="ticon">🐳</div><div class="ticon">🔷</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Ansible Integration in Terraform</div>
+          <div class="project-desc">Create Ansible Playbook for Terraform integration. Adjust Terraform config to execute Ansible Playbook automatically after provisioning.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Ansible</span><span class="ttag">Terraform</span><span class="ttag">AWS</span></div>
+            <div class="tech-icons"><div class="ticon">🅰️</div><div class="ticon">🔷</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Configure Dynamic Inventory</div>
+          <div class="project-desc">Create EC2 with Terraform, write Ansible AWS EC2 Plugin to dynamically set inventory instead of hard-coding server addresses.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Ansible</span><span class="ttag">Dynamic Inventory</span><span class="ttag">AWS</span></div>
+            <div class="tech-icons"><div class="ticon">🅰️</div><div class="ticon">☁️</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Automate Kubernetes Deployment</div>
+          <div class="project-desc">Create EKS cluster with Terraform, write Ansible Play to deploy application in a new K8s namespace.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Ansible</span><span class="ttag">Terraform</span><span class="ttag">AWS EKS</span></div>
+            <div class="tech-icons"><div class="ticon">🅰️</div><div class="ticon">⎈</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Ansible Integration in Jenkins</div>
+          <div class="project-desc">Full pipeline: Jenkins → SSH to Ansible Control Node → copy playbooks and SSH keys → install Ansible/Python3/Boto3 → execute playbook to configure 2 EC2 managed nodes.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Ansible</span><span class="ttag">Jenkins</span><span class="ttag">Boto3</span><span class="ttag">AWS</span></div>
+            <div class="tech-icons"><div class="ticon">🅰️</div><div class="ticon">⚙️</div><div class="ticon">☁️</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Structure Playbooks with Ansible Roles</div>
+          <div class="project-desc">Break up large Ansible Playbooks into smaller manageable files using Ansible Roles for better organization and reusability.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Ansible</span><span class="ttag">Roles</span><span class="ttag">AWS</span></div>
+            <div class="tech-icons"><div class="ticon">🅰️</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 16 -->
+    <div class="module-block">
+      <div class="module-label">Module 16 — Monitoring with Prometheus</div>
+      <div class="projects-list">
+        <div class="project-item">
+          <div class="project-name">Install Prometheus Stack in Kubernetes</div>
+          <div class="project-desc">Setup EKS cluster with eksctl, deploy Prometheus, Alertmanager, and Grafana using Prometheus Operator Helm chart.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Prometheus</span><span class="ttag">Grafana</span><span class="ttag">Helm</span><span class="ttag">AWS EKS</span></div>
+            <div class="tech-icons"><div class="ticon">📊</div><div class="ticon">📈</div><div class="ticon">⎈</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Configure Alerting for our Application</div>
+          <div class="project-desc">Configure Alert Rules in Prometheus, configure Alertmanager with Email Receiver — trigger when CPU > 50% or Pod cannot start.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Prometheus</span><span class="ttag">Alertmanager</span><span class="ttag">Kubernetes</span></div>
+            <div class="tech-icons"><div class="ticon">📊</div><div class="ticon">🔔</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Configure Monitoring for a Third-Party Application (Redis)</div>
+          <div class="project-desc">Deploy Redis, deploy Redis exporter via Helm, configure alert rules for Redis down or too many connections, import Grafana dashboard.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Prometheus</span><span class="ttag">Redis</span><span class="ttag">Helm</span><span class="ttag">Grafana</span></div>
+            <div class="tech-icons"><div class="ticon">📊</div><div class="ticon">🗄️</div><div class="ticon">📈</div></div>
+          </div>
+        </div>
+        <div class="project-item">
+          <div class="project-name">Configure Monitoring for Own Application</div>
+          <div class="project-desc">Instrument Node.js app with Prometheus Client Library, deploy to K8s with metrics endpoint, configure Prometheus to scrape it, visualize in Grafana.</div>
+          <div class="project-footer">
+            <div class="tech-tags"><span class="ttag">Prometheus</span><span class="ttag">Node.js</span><span class="ttag">Grafana</span><span class="ttag">Docker Hub</span></div>
+            <div class="tech-icons"><div class="ticon">📊</div><div class="ticon">📈</div><div class="ticon">⎈</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- CLOUD FOOTPRINT -->
+<div class="section">
+  <div class="section-tag">// bootcamp infrastructure</div>
+  <h2 class="section-title">3-Cloud Footprint</h2>
+  <p class="section-sub">Every cloud used during the bootcamp — each one for a different purpose.</p>
+
+  <div class="cloud-grid">
+    <div class="cloud-card aws">
+      <div class="cloud-icon">☁️</div>
+      <div class="cloud-provider">Amazon Web Services</div>
+      <div class="cloud-role">Compute · EKS · CI/CD Target</div>
+      <ul class="cloud-items">
+        <li>EC2 App Servers</li>
+        <li>EKS Managed Kubernetes</li>
+        <li>VPC · Subnets · Security Groups</li>
+        <li>IAM · S3 · ECR · CloudWatch</li>
+        <li>Terraform + Ansible provisioning</li>
+      </ul>
+    </div>
+    <div class="cloud-card do">
+      <div class="cloud-icon">🌊</div>
+      <div class="cloud-provider">DigitalOcean</div>
+      <div class="cloud-role">CI/CD Infrastructure</div>
+      <ul class="cloud-items">
+        <li>Jenkins server (Docker)</li>
+        <li>Nexus artifact repository</li>
+        <li>Ansible control node</li>
+        <li>App deployment target</li>
+      </ul>
+    </div>
+    <div class="cloud-card linode">
+      <div class="cloud-icon">🟢</div>
+      <div class="cloud-provider">Linode (Akamai)</div>
+      <div class="cloud-role">Managed Kubernetes</div>
+      <ul class="cloud-items">
+        <li>LKE Kubernetes clusters</li>
+        <li>Helm chart deployments</li>
+        <li>Jenkins → LKE CD pipeline</li>
+        <li>Persistent volume storage</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <p>
+    <strong>Sharrod Skinner</strong> ·
+    <a href="https://sharrods.github.io" target="_blank">Portfolio</a> ·
+    <a href="https://github.com/sharrods/TWN" target="_blank">GitHub Repo</a> ·
+    <a href="https://github.com/sharrods/multi-cloud-voip-lab" target="_blank">VoIP Lab</a>
+  </p>
+  <p style="margin-top:8px;opacity:0.4;font-size:0.62rem;">
+    TechWorld With Nana · DevOps Bootcamp · 2026 · Certified DevOps Practitioner
+  </p>
+</footer>
+
+</body>
+</html>
