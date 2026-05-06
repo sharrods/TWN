@@ -1,5 +1,5 @@
 
-dule 10 — Container Orchestration with Kubernetes
+module 10 — Container Orchestration with Kubernetes
 
 ## What I Built
 - Deployed MongoDB and Mongo Express on local Minikube cluster
