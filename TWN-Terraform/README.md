@@ -2,7 +2,6 @@
 # Module 12 — Terraform
 
 ## What I Built
-[fill in after completing module]
 
 ---
 
