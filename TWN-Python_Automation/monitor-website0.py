@@ -4,6 +4,8 @@ import os
 import paramiko
 import linode_api4
 import time
+import schedule
+
 
 EMAIL_ADDRESS = os.environ.get('EMAIL_ADDRESS')
 EMAIL_PASSWORD = os.environ.get('EMAIL_PASSWORD')
@@ -44,19 +46,25 @@ def restart_container():
     print(stdout.readlines())
     ssh.close()
 
-try:
-    response = requests.get('http://74.207.228.174:8080/')
-    if response.status_code == 200:
-    #if False:
-        print('Application is running successfully!')
-    else:
-        print('Application is Down. Please Fix it!!')
-        msg = f"Application returned {response.status_code}"
-        send_notification(msg)
-        restart_container()
+def monitor_application():
+    try:
+        response = requests.get('http://74.207.228.174:8080/')
+        if response.status_code == 200:
+        #if False:
+            print('Application is running successfully!')
+        else:
+            print('Application is Down. Please Fix it!!')
+            msg = f"Application returned {response.status_code}"
+            send_notification(msg)
+            restart_container()
 
-except Exception as ex:
-    print(f'Connection error happened: {ex}')
-    msg = f"Application not accessible at all!!"
-    send_notification(msg)
-    restart_server_and_container()
+    except Exception as ex:
+        print(f'Connection error happened: {ex}')
+        msg = f"Application not accessible at all!!"
+        send_notification(msg)
+        restart_server_and_container()
+
+schedule.every(5).minutes.do(monitor_application)
+
+while True:
+    schedule.run_pending()
