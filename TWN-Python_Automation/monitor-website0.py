@@ -10,6 +10,7 @@ EMAIL_PASSWORD = os.environ.get('EMAIL_PASSWORD')
 LINODE_TOKEN = os.environ.get('LINODE_TOKEN')
 
 def send_notification(email_msg):
+    print('Sending and email ...')
     with smtplib.SMTP('smtp.gmail.com', 587) as smtp:
         smtp.ehlo()
         smtp.starttls()
@@ -17,6 +18,14 @@ def send_notification(email_msg):
         message = f"Subject: SITE DOWN\n{email_msg}"
         smtp.sendmail(EMAIL_ADDRESS, EMAIL_ADDRESS, message)
 
+def restart_container():
+    print('Restarting the application....')
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(hostname='74.207.228.174', username='root', key_filename='/Users/sharrods/.ssh/id_ed25519')
+    stdin, stdout, stderr = ssh.exec_command('docker start 2ff4e1af46f3')
+    print(stdout.readlines())
+    ssh.close()
 
 try:
     response = requests.get('http://74.207.228.174:8080/')
@@ -27,15 +36,7 @@ try:
         print('Application is Down. Please Fix it!!')
         msg = f"Application returned {response.status_code}"
         send_notification(msg)
-
-        # Restart the application†
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect(hostname='74.207.228.174', username='root', key_filename='/Users/sharrods/.ssh/id_ed25519')
-        stdin, stdout, stderr = ssh.exec_command('docker start 2ff4e1af46f3')
-        print(stdout.readlines())
-        ssh.close()
-        print('Application restarted')
+        restart_container()
 
 except Exception as ex:
     print(f'Connection error happened: {ex}')
@@ -44,8 +45,15 @@ except Exception as ex:
 
 
     # restart linode server
+    print('Rebooting the server ...')
     client = linode_api4.LinodeClient(LINODE_TOKEN)
     nginx_server = client.load(linode_api4.Instance, 98587330 )
     nginx_server.reboot()
 
     # restart application
+    while True:
+        nginx_server = client.load(linode_api4.Instance, 98587330)
+        if nginx_server.status == 'running':
+            restart_container()
+            break
+    restart_container()
