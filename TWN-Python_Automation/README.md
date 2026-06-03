@@ -651,6 +651,22 @@ smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
 message = f"Subject: SITE DOWN\n{email_msg}"
 smtp.sendmail(EMAIL_ADDRESS, EMAIL_ADDRESS, message)
 
+### Added function restart_container
+
+- Will reboot linode and restart docker container
+  /Users/sharrods/Documents/Projects/Python/venv_openpyxl/bin/python3.14 /Users/sharrods/Documents/Techworld-with-nana/TWN-Python_Automation/monitor-website0.py
+  Connection error happened: HTTPConnectionPool(host='74.207.228.174', port=8080): Max retries exceeded with url: / (Caused by ConnectTimeoutError(<HTTPConnection(host='74.207.228.174', port=8080) at 0x104f7b230>, 'Connection to 74.207.228.174 timed out. (connect timeout=None)'))
+  Sending and email ...
+  Rebooting the server ...
+  Restarting the application....
+  ['2ff4e1af46f3\n']
+  Restarting the application....
+  ['2ff4e1af46f3\n']
+
+- Added scheduler to it all
+
+Process finished with exit code 0
+
 ### What I Built
 
 - monitors a web application every 5 minutes
