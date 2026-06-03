@@ -1,6 +1,7 @@
 # Module 14 — Automation with Python
 
 ## What I Built
+
 - automated EC2 health checks using Boto3 and schedule library
 - tagged EC2 instances across multiple regions with environment labels
 - retrieved EKS cluster information programmatically
@@ -14,6 +15,7 @@
 ## Lesson 1 — Introduction to Boto3
 
 ### What is Boto3
+
 - Boto3 = AWS SDK for Python
 - lets you interact with AWS services using Python code
 - same things you do in AWS console or CLI — but automated in a script
@@ -32,12 +34,14 @@ ec2_resource = boto3.resource("ec2", region_name="us-east-1")
 ```
 
 ### client vs resource
+
 - `client` = low level, returns raw JSON/dict responses
 - `resource` = high level, returns Python objects with attributes and methods
 - use client when you need full API response
 - use resource when you want cleaner object-oriented code
 
 ### AWS credentials
+
 - Boto3 uses credentials from `~/.aws/credentials`
 - same credentials configured with `aws configure`
 - never hardcode credentials in your scripts
@@ -47,10 +51,12 @@ ec2_resource = boto3.resource("ec2", region_name="us-east-1")
 ## Lesson 3 — Getting Familiar with Boto3
 
 ### What I Built
+
 - first Boto3 script — listed all VPCs and their CIDR blocks
 - learned how to navigate nested API responses
 
 ### Program
+
 ```python
 import boto3
 
@@ -67,6 +73,7 @@ for vpc in vpcs:
 ```
 
 ### Common Boto3 Patterns
+
 ```python
 import boto3
 
@@ -81,6 +88,7 @@ for reservation in instances["Reservations"]:
 ```
 
 ### Navigating API Responses
+
 - responses are nested dictionaries
 - use print() to see the full structure first
 - then drill down with `response["Key"]["NestedKey"]`
@@ -91,18 +99,21 @@ for reservation in instances["Reservations"]:
 ## Lesson 4 — Terraform vs Python
 
 ### When to Use Terraform
+
 - provisioning infrastructure (create/destroy)
 - infrastructure that needs state tracking
 - reproducible environments
 - VPCs, EC2, EKS, RDS
 
 ### When to Use Python/Boto3
+
 - automation tasks (health checks, backups, cleanup)
 - logic and decision making based on state
 - scheduled tasks
 - anything that reads state and acts on it
 
 ### Simple Rule
+
 ```
 Create infrastructure  → Terraform
 Automate tasks on it   → Python
@@ -113,11 +124,13 @@ Automate tasks on it   → Python
 ## Lesson 5 — Health Check: EC2 Status Checks
 
 ### What I Built
+
 - script that checks status of all EC2 instances
 - prints instance state, instance status and system status
 - runs every 5 seconds using schedule library
 
 ### Initial exploration
+
 ```python
 import boto3
 
@@ -138,6 +151,7 @@ for status in statuses['InstanceStatuses']:
 ```
 
 ### Final Program with Schedule
+
 ```python
 import boto3
 import schedule
@@ -163,6 +177,7 @@ while True:
 ```
 
 ### What Each Part Does
+
 - `describe_instance_status` = gets health of all instances
 - `IncludeAllInstances=True` = includes stopped instances not just running
 - `InstanceStatus` = software/OS level checks
@@ -175,10 +190,12 @@ while True:
 ## Lesson 6 — Write a Scheduled Task in Python
 
 ### What I Built
+
 - same EC2 health check but changed interval to every 5 minutes
 - demonstrates schedule library time intervals
 
 ### Schedule Library Options
+
 ```python
 schedule.every(5).seconds.do(job)
 schedule.every(5).minutes.do(job)
@@ -195,11 +212,13 @@ while True:
 ## Lesson 7 — Configure Server: Add Environment Tags to EC2
 
 ### What I Built
+
 - tags all EC2 instances in us-east-1 with `environment=prod`
 - tags all EC2 instances in second region with `environment=dev`
 - uses both client and resource in same script
 
 ### Program
+
 ```python
 import boto3
 
@@ -238,6 +257,7 @@ ec2_resource_dev.create_tags(
 ```
 
 ### What Each Part Does
+
 - `describe_instances()['Reservations']` = AWS groups instances into reservations
 - double for loop = first loop gets reservation, second gets instances inside it
 - `create_tags` = applies tags to list of instance IDs
@@ -249,10 +269,12 @@ ec2_resource_dev.create_tags(
 ## Lesson 8 — EKS Cluster Information
 
 ### What I Built
+
 - script that lists all EKS clusters in us-east-1
 - prints status, endpoint, and version for each cluster
 
 ### Program
+
 ```python
 import boto3
 
@@ -272,6 +294,7 @@ for cluster in clusters:
 ```
 
 ### What Each Part Does
+
 - `list_clusters()` = returns list of cluster names
 - `describe_cluster(name=cluster)` = gets full details for one cluster
 - different service — uses `boto3.client('eks')` not `boto3.client('ec2')`
@@ -281,10 +304,12 @@ for cluster in clusters:
 ## Lesson 9 — Backup EC2 Volumes: Automate Creating Snapshots
 
 ### What I Built
+
 - daily scheduled job that creates snapshots of all prod volumes
 - filters volumes by tag to only backup tagged prod volumes
 
 ### Program
+
 ```python
 import boto3
 import schedule
@@ -313,6 +338,7 @@ while True:
 ```
 
 ### What Each Part Does
+
 - `describe_volumes` with filter = only returns volumes tagged `Name=prod`
 - `create_snapshot` = creates point-in-time backup of the volume
 - `schedule.every().day` = runs backup once per day
@@ -323,12 +349,14 @@ while True:
 ## Lesson 10 — Automate Cleanup of Old Snapshots
 
 ### What I Built
+
 - finds all prod volumes and their snapshots
 - sorts snapshots by date newest first
 - keeps the 2 most recent snapshots
 - deletes everything older than the 2 most recent
 
 ### Program
+
 ```python
 import boto3
 from operator import itemgetter
@@ -365,18 +393,19 @@ for volume in volumes['Volumes']:
 ```
 
 ### What Each Part Does
+
 - `describe_snapshots` with `OwnerIds=['self']` = only your own snapshots
 - `sorted_by_date` = sorts newest first using itemgetter on StartTime
 - `sorted_by_date[2:]` = slices list starting from index 2 — skips the 2 newest
 - `delete_snapshot` = deletes all snapshots beyond the 2 most recent
 - runs per volume — each prod volume keeps its own 2 most recent snapshots
 
-
 ---
 
 ## Lesson 11 — Automate Restoring EC2 Volume from Backup
 
 ### What I Built
+
 - finds volume attached to a specific EC2 instance
 - finds the most recent snapshot for that volume
 - creates a new volume from that snapshot
@@ -384,6 +413,7 @@ for volume in volumes['Volumes']:
 - attaches the restored volume to the instance
 
 ### Program
+
 ```python
 import boto3
 from operator import itemgetter
@@ -449,6 +479,7 @@ while True:
 ```
 
 ### What Each Part Does
+
 - `describe_volumes` with `attachment.instance-id` filter = gets volumes for specific instance
 - `describe_snapshots` with `OwnerIds=['self']` = only your own snapshots
 - `sorted(...key=itemgetter('StartTime'), reverse=True)[0]` = newest snapshot first
@@ -462,10 +493,12 @@ while True:
 ## Lesson 12 — Handling Errors with Try Except
 
 ### What I Built
+
 - added error handling to Boto3 scripts using try/except
 - handles both AWS-specific errors and general exceptions
 
 ### Error Handling with Boto3
+
 ```python
 import boto3
 from botocore.exceptions import ClientError
@@ -488,7 +521,102 @@ except Exception as e:
 
 ## Lessons 13-15 — Website Monitoring
 
+- Create a linode vm
+- SSH Access = ssh -i ~/.ssh/{{ ssh-key }} root@74.207.228.174
+- apt update
+- install docker
+
+### Add Docker's official GPG key:
+
+apt update
+apt install ca-certificates curl
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+
+### Add the repository to Apt sources:
+
+sudo tee /etc/apt/sources.list.d/docker.sources <<EOF
+Types: deb
+URIs: https://download.docker.com/linux/debian
+Suites: $(. /etc/os-release && echo "$VERSION_CODENAME")
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
+
+apt update
+
+- Install docker
+  apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+- Install nginx docker run -d -p 8080:80 nginx
+- root@localhost:~# docker ps
+  CONTAINER ID IMAGE COMMAND CREATED STATUS PORTS NAMES
+  059194ef510e nginx "/docker-entrypoint.…" 11 seconds ago Up 11 seconds 0.0.0.0:8080->80/tcp, [::]:8080->80/tcp determined_galois
+- Welcome to nginx!
+
+### Install requests in venv
+
+- ❯ source ~/Documents/Projects/Python/venv_openpyxl/bin/activate
+- ❯ pip3 install requests
+
+- ❯ which python3
+- /Users/sharrods/Documents/Projects/Python/venv_openpyxl/bin/python3
+
+### Check that it request works
+
+- ❯ python3 ~/Documents/Techworld-with-nana/TWN-Python_Automation/monitor-website0.py
+- <Response [200]>
+
+### Added request.text
+
+❯ python3 ~/Documents/Techworld-with-nana/TWN-Python_Automation/monitor-website0.py
+
+```
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+html { color-scheme: light dark; }
+body { width: 35em; margin: 0 auto;
+font-family: Tahoma, Verdana, Arial, sans-serif; }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, nginx is successfully installed and working.
+Further configuration is required for the web server, reverse proxy,
+API gateway, load balancer, content cache, or other features.</p>
+
+<p>For online documentation and support please refer to
+<a href="https://nginx.org/">nginx.org</a>.<br/>
+To engage with the community please visit
+<a href="https://community.nginx.org/">community.nginx.org</a>.<br/>
+For enterprise grade support, professional services, additional
+security features and capabilities please refer to
+<a href="https://f5.com/nginx">f5.com/nginx</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+```
+
+### Add logic to look at status code and send message back
+
+- response = requests.get('http://74.207.228.174:8080/')
+  if response.status_code == 200:
+  print('Application is running successfully!')
+  else:
+  print('Applicatiion is Down. Please Fix it!!')
+
+```
+ python3 ~/Documents/Techworld-with-nana/TWN-Python_Automation/monitor-website0.py
+ Application is running successfully!
+```
+
 ### What I Built
+
 - monitors a web application every 5 minutes
 - sends email alert when site is down
 - automatically restarts Docker container via SSH
@@ -496,6 +624,7 @@ except Exception as e:
 - uses environment variables for credentials — never hardcoded
 
 ### Program
+
 ```python
 import requests
 import smtplib
@@ -565,6 +694,7 @@ while True:
 ```
 
 ### What Each Part Does
+
 - `os.environ.get()` = reads credentials from environment variables
 - `requests.get()` = HTTP GET to check if site responds
 - `response.status_code == 200` = site is healthy
@@ -576,6 +706,7 @@ while True:
 - two levels of recovery: container restart first, full server reboot if that fails
 
 ### Libraries Used
+
 ```bash
 pip install requests
 pip install paramiko       # SSH connections from Python
@@ -584,6 +715,7 @@ pip install schedule       # scheduled tasks
 ```
 
 ### Environment Variables Required
+
 ```bash
 export EMAIL_ADDRESS=your@gmail.com
 export EMAIL_PASSWORD=your-app-password
@@ -593,6 +725,7 @@ export LINODE_TOKEN=your-linode-token
 ---
 
 ## Key Concepts
+
 - Boto3 = AWS SDK for Python — automate anything you can do in AWS console
 - client = low level API access, returns dict
 - resource = high level object oriented access
@@ -611,6 +744,7 @@ export LINODE_TOKEN=your-linode-token
 ## Issues and Resolutions
 
 ### terraform nested .git folder in python automation folder
+
 - Cause: cloned or moved terraform folder into TWN-Python_Automation
   folder had its own .git making it a submodule
 - Error: `modified: TWN-Python_Automation/terraform (modified content)`
@@ -618,12 +752,14 @@ export LINODE_TOKEN=your-linode-token
   then `git add TWN-Python_Automation/terraform/`
 
 ### same files showing as both staged and modified
+
 - Cause: ran `git add` then kept editing the files
   git stages a snapshot at the moment you add
   edits after that are not included until you add again
 - Fix: `git add` the files again to pick up latest changes
 
-### __pycache__ showing as untracked
-- Cause: Python creates __pycache__ automatically when scripts run
+### **pycache** showing as untracked
+
+- Cause: Python creates **pycache** automatically when scripts run
   was never added to .gitignore
 - Fix: `echo "__pycache__/" >> .gitignore`
