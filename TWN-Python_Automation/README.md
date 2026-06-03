@@ -634,6 +634,23 @@ smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
 msg = "Subject: SITE DOWN\nFix the issue!"
 smtp.sendmail(EMAIL_ADDRESS, EMAIL_ADDRESS, msg )
 
+### Added Errror handling and turned off nginx
+
+- /Users/sharrods/Documents/Projects/Python/venv_openpyxl/bin/python3.14 /Users/sharrods/Documents/Techworld-with-nana/TWN-Python_Automation/monitor-website0.py
+  Connection error happened: HTTPConnectionPool(host='74.207.228.174', port=8080): Max retries exceeded with url: / (Caused by ConnectTimeoutError(<HTTPConnection(host='74.207.228.174', port=8080) at 0x10fea7a10>, 'Connection to 74.207.228.174 timed out. (connect timeout=None)'))
+
+Process finished with exit code 0
+
+### Added function to handle message
+
+def send_notification(email_msg):
+with smtplib.SMTP('smtp.gmail.com', 587) as smtp:
+smtp.ehlo()
+smtp.starttls()
+smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+message = f"Subject: SITE DOWN\n{email_msg}"
+smtp.sendmail(EMAIL_ADDRESS, EMAIL_ADDRESS, message)
+
 ### What I Built
 
 - monitors a web application every 5 minutes
