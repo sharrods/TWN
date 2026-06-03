@@ -3,11 +3,28 @@ import requests
 import os
 import paramiko
 import linode_api4
-
+import time
 
 EMAIL_ADDRESS = os.environ.get('EMAIL_ADDRESS')
 EMAIL_PASSWORD = os.environ.get('EMAIL_PASSWORD')
 LINODE_TOKEN = os.environ.get('LINODE_TOKEN')
+
+
+def restart_server_and_container():
+    # restart linode server
+    print('Rebooting the server ...')
+    client = linode_api4.LinodeClient(LINODE_TOKEN)
+    nginx_server = client.load(linode_api4.Instance, 98587330 )
+    nginx_server.reboot()
+
+    # restart application
+    while True:
+        nginx_server = client.load(linode_api4.Instance, 98587330)
+        if nginx_server.status == 'running':
+            time.sleep(5)
+            restart_container()
+            break
+
 
 def send_notification(email_msg):
     print('Sending and email ...')
@@ -42,18 +59,4 @@ except Exception as ex:
     print(f'Connection error happened: {ex}')
     msg = f"Application not accessible at all!!"
     send_notification(msg)
-
-
-    # restart linode server
-    print('Rebooting the server ...')
-    client = linode_api4.LinodeClient(LINODE_TOKEN)
-    nginx_server = client.load(linode_api4.Instance, 98587330 )
-    nginx_server.reboot()
-
-    # restart application
-    while True:
-        nginx_server = client.load(linode_api4.Instance, 98587330)
-        if nginx_server.status == 'running':
-            restart_container()
-            break
-    restart_container()
+    restart_server_and_container()
